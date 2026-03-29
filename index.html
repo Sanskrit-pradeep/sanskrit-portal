@@ -6,6 +6,9 @@
 <title>संस्कृत-वर्तिका | UGC NTA NET Sanskrit Preparation</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='92' fill='%23FFFFFF' stroke='%23FF6B00' stroke-width='12'/%3E%3Ccircle cx='100' cy='100' r='34' fill='%23FFF176'/%3E%3Crect x='99' y='82' width='2' height='12' fill='%233B1F0A' /%3E%3Crect x='94' y='93' width='12' height='42' rx='2' fill='%231e3a8a' /%3E%3Cpath d='M100 62 Q112 85 100 94 Q88 85 100 62 Z' fill='%23FF6B00' /%3E%3Cpath d='M100 74 Q106 85 100 92 Q94 85 100 74 Z' fill='%23FFF176' /%3E%3C/svg%3E">
 <meta name="description" content="Complete UGC NTA NET Paper-2 Sanskrit exam preparation — Notes, Mock Tests, Videos, PYQs in Bengali and Sanskrit.">
+<meta property="og:title" content="संस्कृत-वर्तिका | UGC NET Sanskrit Preparation">
+<meta property="og:description" content="Free notes, mock tests, and video lectures for UGC NTA NET Paper-2 Sanskrit.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit:ital@0;1&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -58,7 +61,7 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
 
 /* ===== PAGE SYSTEM ===== */
 .page { display: none; min-height: calc(100vh - var(--nav-h)); padding-top: var(--nav-h); }
-.page.active { display: block; }
+.page.active { display: block; animation: fadeIn 0.3s ease-out; }
 
 /* ===== NAVBAR ===== */
 #navbar {
@@ -746,6 +749,15 @@ footer {
   50% { transform: scale(0.95,1.05) rotate(-1deg); }
   75% { transform: scale(1.03,0.97) rotate(1deg); }
 }
+/* ===== TOAST NOTIFICATIONS & MODALS ===== */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+.toast { background: var(--brown); color: var(--white); padding: 14px 24px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); font-size: 0.9rem; border-left: 4px solid var(--saffron); font-weight: 500; }
+.toast.show { transform: translateX(0); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 20px; }
+.modal-content { background: var(--white); padding: 32px; border-radius: var(--radius); max-width: 400px; width: 100%; text-align: center; box-shadow: var(--shadow-lg); animation: scaleIn 0.3s ease; }
+
+
 </style>
 </head>
 <body>
@@ -1067,6 +1079,7 @@ footer {
         <div id="notes-topic-view" style="display:none;">
           <div class="test-header" style="justify-content:center; margin-bottom: 24px;">
             <h3 id="notes-topic-title" style="font-size:1.2rem;">Topic Notes</h3>
+            <input type="text" id="notes-search" class="form-input mt-16" placeholder="🔍 Search notes..." style="max-width:300px; margin: 16px auto 0;" onkeyup="filterNotes()">
           </div>
           <div class="notes-grid" id="notes-links-grid">
             </div>
@@ -1127,6 +1140,7 @@ footer {
         <div id="videos-topic-view" style="display:none;">
           <div class="test-header" style="justify-content:center; margin-bottom: 24px;">
             <h3 id="videos-topic-title" style="font-size:1.2rem;">Video Lectures</h3>
+            <input type="text" id="videos-search" class="form-input mt-16" placeholder="🔍 Search videos..." style="max-width:300px; margin: 16px auto 0;" onkeyup="filterVideos()">
           </div>
           <div class="video-grid" id="videos-links-grid">
             </div>
@@ -1160,7 +1174,7 @@ footer {
       <div class="test-categories-grid">
         <div class="test-cat-card" onclick="showSets('full')">
           <div class="test-cat-icon">📋</div>
-          <h3>Full Sets</h3>
+          <h3>Full Mock Test</h3>
           <p>Complete 50-question tests</p>
           <span class="q-count">7000+ Questions </span>
         </div>
@@ -1208,7 +1222,7 @@ footer {
         </div>
       
       <div class="text-center mt-32">
-        <button class="btn btn-outline" onclick="showCategories()">← Back to Categories</button>
+        <button id="back-to-cat-btn" class="btn btn-outline" onclick="showCategories()">← Back to Categories</button>
       </div>
     </div>
     <div id="test-interface">
@@ -1298,86 +1312,49 @@ footer {
 
     <div class="free-section">
       <h3>📝 Free Practice Tests</h3>
-      <div class="test-categories-grid" style="max-width:900px;">
-        <div class="test-cat-card" onclick="navigate('mocktest')">
+      <p style="color:var(--text-mid); margin-bottom: 24px;">Experience our exam interface with these open-access mock tests.</p>
+      
+      <div class="test-categories-grid" style="max-width:600px; margin: 0 auto;">
+        <div class="test-cat-card" onclick="openFreeSets('full')">
           <div class="test-cat-icon">📋</div>
-          <h3>Full Mock Test</h3>
-          <p>Complete practice set</p>
-          <span class="q-count">Free</span>
+          <h3>Free Full Mock Tests</h3>
+          <p>Complete 50-question sets</p>
+          <span class="q-count">Free Access</span>
         </div>
-        <div class="test-cat-card" onclick="startTest('vedic');navigate('mocktest')">
-          <div class="test-cat-icon">🔱</div>
-          <h3>Vedic Literature</h3>
-          <p>वैदिकसाहित्यम्</p>
-          <span class="q-count">Free</span>
-        </div>
-        <div class="test-cat-card" onclick="startTest('grammar');navigate('mocktest')">
-          <div class="test-cat-icon">📖</div>
-          <h3>Grammar</h3>
-          <p>व्याकरणम्</p>
-          <span class="q-count">Free</span>
+        <div class="test-cat-card" onclick="openFreeSets('topic')">
+          <div class="test-cat-icon">📚</div>
+          <h3>Free Topic-wise Tests</h3>
+          <p>Subject-specific practice</p>
+          <span class="q-count">Free Access</span>
         </div>
       </div>
     </div>
 
-    <div class="free-section">
-      <h3>📄 Free Notes</h3>
-      <div class="notes-grid">
-        <!-- EDIT THIS: Add your actual Google Drive or PDF links -->
-        <div class="note-card">
-          <h4>वेदसाहित्य — Summary Notes</h4>
-          <p>Quick revision notes for Vedic literature unit. Key points, author names, and important facts.</p>
-          <a href="#" class="btn btn-gold btn-sm">Download Free PDF</a>
-        </div>
-        <div class="note-card">
-          <h4>व्याकरण — Formula Sheet</h4>
-          <p>All important sutras, their numbers, and meanings in one handy reference sheet.</p>
-          <a href="#" class="btn btn-gold btn-sm">Download Free PDF</a>
-        </div>
-        <div class="note-card">
-          <h4>NET Pattern & Syllabus Guide</h4>
-          <p>Complete UGC NET Sanskrit Paper-2 syllabus breakdown with unit-wise weightage analysis.</p>
-          <a href="#" class="btn btn-gold btn-sm">Download Free PDF</a>
+    <div class="contact-grid" style="margin-top: 48px;">
+      <div class="contact-info" style="background: var(--white); padding: 32px; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid var(--saffron);">
+        <h3 style="margin-bottom: 12px; color: var(--brown);">📄 Free PDF Notes</h3>
+        <p style="color: var(--text-mid); line-height: 1.6; margin-bottom: 24px;">We continuously upload free, high-quality summary notes, formula sheets, and syllabus guides to our main study portal. Access the entire library instantly.</p>
+        <button class="btn btn-primary" onclick="navigate('study'); switchTab('notes');">Browse All Free Notes →</button>
+      </div>
+      
+      <div class="contact-info" style="background: var(--white); padding: 32px; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid #FF0000;">
+        <h3 style="margin-bottom: 12px; color: var(--brown);">🎥 Free Video Lectures</h3>
+        <p style="color: var(--text-mid); line-height: 1.6; margin-bottom: 24px;">Watch our complete UGC NET Sanskrit lecture series, PYQ discussions, and strategy sessions completely free on our official YouTube channel.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button class="btn btn-outline" style="border-color: #FF0000; color: #FF0000;" onclick="window.open('https://www.youtube.com/c/SanskritVartika', '_blank')">▶ YouTube Channel</button>
+          <button class="btn btn-gold" onclick="navigate('study'); switchTab('videos');">View Video Library</button>
         </div>
       </div>
     </div>
 
-    <div class="free-section">
-      <h3>🎥 Free Videos</h3>
-      <div class="video-grid">
-        <!-- EDIT THIS: Add your actual YouTube video URLs -->
-        <div class="video-card">
-          <div class="video-thumb" onclick="window.open('https://www.youtube.com/c/SanskritVartika','_blank')">
-            <div class="play-btn">▶</div>
-          </div>
-          <div class="video-info">
-            <h4>UGC NET Sanskrit — Free Lecture Series</h4>
-            <p>Full playlist available on YouTube</p>
-          </div>
-        </div>
-        <div class="video-card">
-          <div class="video-thumb" onclick="window.open('https://www.youtube.com/c/SanskritVartika','_blank')">
-            <div class="play-btn">▶</div>
-          </div>
-          <div class="video-info">
-            <h4>पुराणसाहित्य — Free Lecture</h4>
-            <p>Puranic Literature overview</p>
-          </div>
-        </div>
-        <div class="video-card">
-          <div class="video-thumb" onclick="window.open('https://www.youtube.com/c/SanskritVartika','_blank')">
-            <div class="play-btn">▶</div>
-          </div>
-          <div class="video-info">
-            <h4>PYQ Discussion 2023 — Free</h4>
-            <p>Solutions with explanations</p>
-          </div>
-        </div>
-      </div>
-      <div class="text-center mt-24">
-        <a href="https://www.youtube.com/c/SanskritVartika" target="_blank" class="btn btn-primary">🎥 Subscribe on YouTube →</a>
-      </div>
+    <div style="background:linear-gradient(135deg,var(--brown),#5A2E10);border-radius:var(--radius);padding:48px 32px;text-align:center;margin-top:64px;box-shadow:var(--shadow-lg);">
+      <h3 style="color:var(--gold);font-size:1.6rem;margin-bottom:16px;">Ready to clear UGC NET?</h3>
+      <p style="color:rgba(255,248,231,0.85);font-size:1rem;margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.6;">
+        If you love our free materials, you will be blown away by our Complete Batch. Get structured daily guidance, live doubt clearing, and premium mock tests.
+      </p>
+      <button class="btn btn-primary" onclick="navigate('courses')">Explore Premium Courses 🎓</button>
     </div>
+
   </div>
 </div>
 
@@ -1413,6 +1390,11 @@ footer {
         <div class="icon">📝</div>
         <span class="value" id="stat-attempted">0</span>
         <span class="label">Tests Attempted</span>
+      </div>
+      <div class="stat-card">
+        <div class="icon">✅</div>
+        <span class="value" id="stat-total-qs">0</span>
+        <span class="label">Questions Solved</span>
       </div>
       <div class="stat-card">
         <div class="icon">⭐</div>
@@ -1666,6 +1648,19 @@ footer {
   </div>
 </footer>
 
+<div id="toast-container"></div>
+<div id="submit-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div style="font-size: 3rem; margin-bottom: 12px;">⚠️</div>
+    <h3 style="color: #b71c1c; margin-bottom: 12px; font-size: 1.2rem;">Unanswered Questions!</h3>
+    <p id="submit-modal-text" style="color: var(--text-mid); margin-bottom: 24px; line-height: 1.6;">You have X unanswered questions.</p>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <button class="btn btn-outline" onclick="document.getElementById('submit-modal').style.display='none'">← Go Back</button>
+      <button class="btn" style="background:#4CAF50;color:white;" onclick="confirmSubmit()">Submit Anyway</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== JAVASCRIPT ==================== -->
 <script>
 
@@ -1674,6 +1669,8 @@ footer {
 
 
 // === NAVIGATION ===
+// === NAVIGATION & UI ===
+let isFreeMode = false;
 let currentPage = 'home';
 function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1682,21 +1679,34 @@ function navigate(page) {
     target.classList.add('active');
     currentPage = page;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Feature: Dynamic Tab Titles
+    const titles = { 'home': 'Home', 'study': 'Study Materials', 'mocktest': 'Mock Tests', 'courses': 'Courses', 'free': 'Free Services', 'dashboard': 'Student Dashboard', 'about': 'About Us', 'contact': 'Contact' };
+    document.title = (titles[page] || 'Welcome') + ' | संस्कृत-वर्तिका';
   }
   
   if (page === 'dashboard') loadDashboard();
-  
-  // --- NEW LOGIC: Reset SPA Views ---
-  // If the user navigates to the mock test page, show the main categories 
-  if (page === 'mocktest') {
-    showCategories();
-  }
-  
-  // If the user navigates to the study materials page, close any open folders
+  if (page === 'mocktest') { isFreeMode = false; showCategories(); }
   if (page === 'study') {
     if (typeof backToNotesMain === 'function') backToNotesMain();
     if (typeof backToVideosMain === 'function') backToVideosMain();
   }
+}
+
+// Feature: Toast Notifications
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  if(!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  // Trigger animation slightly after appending
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function toggleMobileNav() {
@@ -1750,50 +1760,31 @@ const catNames = {
   darshan: 'दर्शनम्', sahitya: 'साहित्यम्', other: 'अन्यानि'
 };
 
-// 2. THE LAZY LOADER: Fetches data ONLY when a category is clicked
-async function showSets(cat) {
-  // If we already downloaded this during this visit, skip the download!
-  if (allQuestions[cat]) {
-    renderSetsUI(cat);
-    return;
-  }
+// 2. THE CENTRAL DATA FETCHER (Upgraded with Free Filters)
+async function fetchQuestions(cat) {
+  if (allQuestions[cat]) return true; // Already loaded in memory!
 
   const targetURL = TEST_DATABASE_URLS[cat];
-  if (!targetURL || targetURL.includes('PASTE_')) {
-    alert(`The database for ${catNames[cat]} is not linked yet. Coming soon!`);
-    return;
-  }
-
-  // Show the loading spinner
-  document.getElementById('loading-overlay').style.display = 'flex';
+  if (!targetURL || targetURL.includes('PASTE_')) return false;
 
   try {
     const response = await fetch(targetURL);
     const textData = await response.text();
     let data;
-    try { data = JSON.parse(textData); } catch (e) {
-      alert("Database connection error. Please ensure the Google Sheet is set to 'Anyone' and deployed as a New Version.");
-      document.getElementById('loading-overlay').style.display = 'none';
-      return;
-    }
+    try { data = JSON.parse(textData); } catch (e) { return false; }
 
-    allQuestions[cat] = {}; // Create the bucket for this subject
+    allQuestions[cat] = {};
 
     data.forEach(row => {
       const originalSet = String(row.set || row.Set || "1").trim();
       const questionText = row.question || row.Question;
-
-      // Extract the Sheet Tab Name
       let sheetName = String(row.category || row.Category || "").trim();
       sheetName = sheetName.charAt(0).toUpperCase() + sheetName.slice(1);
 
-      // --- NEW LOGIC FOR FULL SETS ---
       let setKey;
       if (cat === 'full') {
-        // Treat the entire sheet tab as the set name! (Ignores the 'set' column)
         setKey = (sheetName && !sheetName.toLowerCase().startsWith('sheet')) ? sheetName : "Set " + originalSet;
       } else {
-        // Topic-wise sets (e.g., "तर्कसंग्रहः - Set 1")
         if (sheetName && !sheetName.toLowerCase().startsWith('sheet')) {
           setKey = sheetName + " - Set " + originalSet;
         } else {
@@ -1812,28 +1803,107 @@ async function showSets(cat) {
         else if (rawAns === "D" || rawAns === "4") convertedAns = 3;
         else convertedAns = Math.max(0, Number(rawAns) - 1);
 
+        // --- THE MAGIC FILTER: Check if this question is marked as free ---
+        const isFreeQuestion = String(row.type || row.Type || "").trim().toLowerCase() === "free";
+
         allQuestions[cat][setKey].push({
           q: questionText,
           options: [row.opta || row.opt0 || "A", row.optb || row.opt1 || "B", row.optc || row.opt2 || "C", row.optd || row.opt3 || "D"],
           answer: convertedAns,
-          explanation: row.explanation || ""
+          explanation: row.explanation || "",
+          isFree: isFreeQuestion // Attach the flag!
         });
       }
     });
+    return true;
+  } catch (error) { console.error(error); return false; }
+}
 
-    // Hide spinner and show the sets UI
-    document.getElementById('loading-overlay').style.display = 'none';
-    renderSetsUI(cat);
+// Standard Mock Test Loader (For Paid/Main Portal)
+async function showSets(cat) {
+  document.getElementById('loading-overlay').style.display = 'flex';
+  const success = await fetchQuestions(cat);
+  document.getElementById('loading-overlay').style.display = 'none';
 
-  } catch (error) { 
-    document.getElementById('loading-overlay').style.display = 'none';
-    alert("Could not load questions. Check your internet connection.");
-    console.error(error); 
+  if (success) renderSetsUI(cat);
+  else showToast(`The database for ${catNames[cat]} could not be loaded.`);
+}
+
+// --- NEW SMART ENGINE: The Free Services Loader ---
+async function openFreeSets(mode) {
+  
+  document.getElementById('loading-overlay').style.display = 'flex';
+  
+  // Determine which databases to download (Array order dictates display order!)
+  let catsToLoad = mode === 'full' ? ['full'] : ['vedic', 'grammar', 'darshan', 'sahitya', 'other'];
+  
+  // Download all needed databases simultaneously for blazing fast speed
+  await Promise.all(catsToLoad.map(cat => fetchQuestions(cat)));
+  
+  document.getElementById('loading-overlay').style.display = 'none';
+
+  // Take the user to the Mock Test interface
+  navigate('mocktest');
+  document.getElementById('test-categories').style.display = 'none';
+  document.getElementById('test-interface').style.display = 'none';
+  document.getElementById('test-results').style.display = 'none';
+  
+  const setsView = document.getElementById('test-sets-view');
+  setsView.style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+isFreeMode = true;
+if(document.getElementById('back-to-cat-btn')) document.getElementById('back-to-cat-btn').textContent = '← Back to Free Services';
+
+  document.getElementById('sets-category-title').textContent = mode === 'full' ? "Free Full Mock Tests" : "Free Topic-wise Tests";
+
+  const grid = document.getElementById('sets-grid');
+  grid.innerHTML = '';
+  let hasFreeSets = false;
+  const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
+
+  catsToLoad.forEach(cat => {
+    if (!allQuestions[cat]) return;
+    
+    Object.keys(allQuestions[cat]).forEach(setKey => {
+      const qs = allQuestions[cat][setKey];
+      // If ANY question in this set has type "free", display the whole set!
+      const isFreeSet = qs.some(q => q.isFree);
+
+      if (isFreeSet) {
+        hasFreeSets = true;
+        const catTitle = catNames[cat];
+        const exactTestName = catTitle + " - " + setKey;
+        const isCompleted = history.some(h => h.name === exactTestName);
+        const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
+
+        // Add subject name (e.g., वैदिकसाहित्यम्) to description for topic-wise tests
+        const desc = mode === 'topic' ? catTitle : "Complete practice set";
+
+        grid.innerHTML += `
+          <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="startTest('${cat}', '${setKey}')">
+            ${checkmark}
+            <div class="test-cat-icon">🎁</div>
+            <h3 style="font-size:1.05rem;">${setKey}</h3>
+            <p style="font-family: var(--font-skt); font-size: 0.9rem;">${desc}</p>
+            <span class="q-count">${qs.length} Questions</span>
+          </div>
+        `;
+      }
+    });
+  });
+
+  if (!hasFreeSets) {
+    grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:var(--text-light);">Free sets are being updated. Check back soon!</p>';
   }
 }
 
 // 3. THE UI RENDERER: Builds the grid of Sets after data is loaded
 function renderSetsUI(cat) {
+
+  isFreeMode = false;
+if(document.getElementById('back-to-cat-btn')) document.getElementById('back-to-cat-btn').textContent = '← Back to Categories';
+
   document.getElementById('test-categories').style.display = 'none';
   document.getElementById('test-interface').style.display = 'none';
   document.getElementById('test-results').style.display = 'none';
@@ -2035,7 +2105,23 @@ function updatePalette() {
   });
 }
 
+// Feature: Test Summary Warning
 function showResults() {
+  let unanswered = 0;
+  testState.questions.forEach((_, i) => { if (testState.answers[i] === undefined) unanswered++; });
+
+  if (unanswered > 0 && !testState.finished && testState.timeLeft > 0) {
+    document.getElementById('submit-modal-text').innerHTML = `You have <strong>${unanswered} unanswered</strong> questions left.<br>Are you sure you want to submit?`;
+    document.getElementById('submit-modal').style.display = 'flex';
+    return;
+  }
+  confirmSubmit();
+}
+
+function confirmSubmit() {
+// Hide the warning modal!
+  document.getElementById('submit-modal').style.display = 'none';
+
   clearInterval(testState.timerInterval);
   testState.finished = true;
 
@@ -2102,12 +2188,18 @@ function retakeTest() {
   startTest(testState.category, testState.currentSet);
 }
 function showCategories() {
-  document.getElementById('test-categories').style.display = 'block';
+  clearInterval(testState.timerInterval);
   document.getElementById('test-sets-view').style.display = 'none';
   document.getElementById('test-interface').style.display = 'none';
   document.getElementById('test-results').style.display = 'none';
-  clearInterval(testState.timerInterval);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Smart Routing: Check where the user came from!
+  if (isFreeMode) {
+    navigate('free'); 
+  } else {
+    document.getElementById('test-categories').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 // ==========================================
@@ -2127,7 +2219,7 @@ async function loadNotesFromSheet() {
       data = JSON.parse(textData); 
     } catch (e) { 
       // THE ALARM BELL: If Google sends an HTML error instead of JSON, it pops up!
-      alert("Error: Google did not send the notes. Please check if 'Who has access' is set to 'Anyone' and you deployed a 'New Version'.");
+      showToast("Error: Google did not send the notes. Please check if 'Who has access' is set to 'Anyone' and you deployed a 'New Version'.");
       console.error("Google Error Output:", textData);
       return; 
     }
@@ -2356,6 +2448,7 @@ function loadDashboard() {
   }
 
   document.getElementById('stat-attempted').textContent = history.length;
+  document.getElementById('stat-total-qs').textContent = history.reduce((sum, h) => sum + h.total, 0);
   if (history.length > 0) {
     const avg = Math.round(history.reduce((a,h) => a + h.pct, 0) / history.length);
     const best = Math.max(...history.map(h => h.pct));
@@ -2382,13 +2475,27 @@ function loadDashboard() {
   }
 }
 
+// Feature: Search/Filter Notes & Videos
+function filterNotes() {
+  const query = document.getElementById('notes-search').value.toLowerCase();
+  document.querySelectorAll('#notes-links-grid .note-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(query) ? 'block' : 'none';
+  });
+}
+function filterVideos() {
+  const query = document.getElementById('videos-search').value.toLowerCase();
+  document.querySelectorAll('#videos-links-grid .video-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(query) ? 'block' : 'none';
+  });
+}
+
 // === CONTACT FORM ===
 function submitContactForm() {
   const name = document.getElementById('cf-name').value.trim();
   const email = document.getElementById('cf-email').value.trim();
   const subject = document.getElementById('cf-subject').value.trim();
   const msg = document.getElementById('cf-msg').value.trim();
-  if (!name || !email || !msg) { alert('Please fill all required fields.'); return; }
+  if (!name || !email || !msg) { showToast('Please fill all required fields.'); return; }
   const mailto = `mailto:enquiry.sanskritvartika@gmail.com?subject=${encodeURIComponent(subject||'Query from website')}&body=${encodeURIComponent('Name: '+name+'\nEmail: '+email+'\n\n'+msg)}`;
   window.location.href = mailto;
 }
