@@ -2243,7 +2243,10 @@ async function loadNotesFromSheet() {
     
     console.log(`Successfully loaded ${noteCount} notes from Google Sheets!`);
     
-  } catch (error) { console.error("Could not load study notes:", error); }
+  } catch (error) { 
+  console.error("Could not load study notes:", error); 
+  showToast("⚠️ Could not load notes. Please check your internet connection.");
+}
 }
 
 // Start loading the notes in the background
@@ -2314,7 +2317,10 @@ async function loadVideosFromSheet() {
         });
       }
     });
-  } catch (error) { console.error("Could not load videos:", error); }
+  } catch (error) { 
+  console.error("Could not load videos:", error); 
+  showToast("⚠️ Could not load videos. Please check your internet connection.");
+}
 }
 
 loadVideosFromSheet();
@@ -2405,8 +2411,10 @@ async function loadPYQsFromSheet() {
       }
     });
   } catch (error) { 
-    console.error("Could not load PYQs:", error); 
-  }
+  console.error("Could not load PYQs:", error); 
+  showToast("⚠️ Could not load PYQs. Please check your internet connection.");
+  document.getElementById('pyqs-grid').innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#F44336;">Failed to load data. Please refresh the page.</p>';
+}
 }
 
 loadPYQsFromSheet();
