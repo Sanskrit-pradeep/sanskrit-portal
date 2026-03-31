@@ -542,6 +542,16 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
 }
 .palette-item.answered { background: var(--saffron); color: var(--white); }
 .palette-item.marked { background: #9C27B0; color: var(--white); }
+.palette-item.answered-marked { background: #9C27B0; color: var(--white); position: relative; }
+.palette-item.answered-marked::after {
+  content: ''; position: absolute; bottom: 2px; right: 2px;
+  width: 8px; height: 8px; background: #4CAF50; border-radius: 50%; border: 1px solid var(--white);
+}
+.legend-dot.answered-marked { background: #9C27B0; position: relative; }
+.legend-dot.answered-marked::after {
+  content: ''; position: absolute; bottom: -2px; right: -2px;
+  width: 6px; height: 6px; background: #4CAF50; border-radius: 50%; border: 1px solid var(--white);
+}
 .palette-item.current { outline: 2px solid var(--brown); outline-offset: 2px; }
 
 .palette-legend { display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; }
@@ -1502,6 +1512,7 @@ footer {
             <div class="legend-item"><div class="legend-dot unanswered"></div> Not Visited / Unanswered</div>
             <div class="legend-item"><div class="legend-dot answered"></div> Answered</div>
             <div class="legend-item"><div class="legend-dot marked"></div> Marked for Review</div>
+            <div class="legend-item"><div class="legend-dot answered-marked"></div> Answered & Marked</div>
           </div>
         </div>
       </div>
@@ -2415,7 +2426,8 @@ function renderQuestion() {
   q.options.forEach((opt, i) => {
     const div = document.createElement('div');
     div.className = 'option-item' + (testState.answers[idx] === i ? ' selected' : '');
-    div.innerHTML = `<div class="option-label">${String.fromCharCode(65+i)}</div><div>${opt}</div>`;
+    const safeOpt = String(opt).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+div.innerHTML = `<div class="option-label">${String.fromCharCode(65+i)}</div><div>${safeOpt}</div>`;
     div.onclick = () => selectOption(i);
     optList.appendChild(div);
   });
@@ -2424,7 +2436,9 @@ function renderQuestion() {
   document.getElementById('explanation-box').textContent = '';
 
   const markBtn = document.getElementById('mark-btn');
-  markBtn.classList.toggle('marked', !!testState.marked[idx]);
+  const isMarked = !!testState.marked[idx];
+  markBtn.classList.toggle('marked', isMarked);
+  markBtn.innerHTML = isMarked ? '✅ Marked' : '🔖 Mark for Review';
 
   const nextBtn = document.getElementById('next-btn');
   if (idx === qs.length - 1) {
@@ -2470,7 +2484,12 @@ function prevQuestion() {
 function toggleMark() {
   const idx = testState.current;
   testState.marked[idx] = !testState.marked[idx];
-  document.getElementById('mark-btn').classList.toggle('marked', testState.marked[idx]);
+
+  const markBtn = document.getElementById('mark-btn');
+  const isMarked = testState.marked[idx];
+  markBtn.classList.toggle('marked', isMarked);
+  markBtn.innerHTML = isMarked ? '✅ Marked' : '🔖 Mark for Review';
+
   updatePalette();
 }
 
@@ -2490,9 +2509,22 @@ function updatePalette() {
   testState.questions.forEach((_, i) => {
     const el = document.getElementById('pal-' + i);
     if (!el) return;
+
+    // Reset classes
     el.className = 'palette-item';
-    if (testState.marked[i]) el.classList.add('marked');
-    else if (testState.answers[i] !== undefined) el.classList.add('answered');
+
+    // Determine exact status
+    const hasAnswer = testState.answers[i] !== undefined;
+    const isMarked = testState.marked[i];
+
+    if (hasAnswer && isMarked) {
+      el.classList.add('answered-marked'); // Purple with Green Dot
+    } else if (isMarked) {
+      el.classList.add('marked'); // Pure Purple
+    } else if (hasAnswer) {
+      el.classList.add('answered'); // Pure Orange
+    }
+
     if (i === testState.current) el.classList.add('current');
   });
 }
