@@ -2869,24 +2869,25 @@ function changeName() {
 function saveTestResult(name, correct, total) {
   const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
   const today = new Date().toLocaleDateString('en-IN');
-  
+  const oldStreak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
+
+  // --- 1. Snapshot OLD Badges ---
+  const oldUnlocked = BADGE_DEFS.filter(b => b.check(history, oldStreak.count)).map(b => b.id);
+
+  // --- Save New History ---
   history.unshift({
     name, correct, total,
     pct: Math.round((correct/total)*100),
     date: today
   });
-  if (history.length > 20) history.pop();
+  if (history.length > 1000) history.pop(); // Upgraded to 1000 so the top badge is possible!
   localStorage.setItem('sp_history', JSON.stringify(history));
 
-  // --- NEW: Streak Calculation Engine ---
+  // --- Save New Streak ---
   let streak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
-  
-  // Only increase streak if they haven't already taken a test today
   if (streak.lastDate !== today) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    
-    // If they took a test yesterday, increment. Otherwise, reset to 1.
     if (streak.lastDate === yesterday.toLocaleDateString('en-IN')) {
       streak.count++;
     } else {
@@ -2895,6 +2896,18 @@ function saveTestResult(name, correct, total) {
     streak.lastDate = today;
     localStorage.setItem('sp_streak', JSON.stringify(streak));
   }
+
+  // --- 2. Snapshot NEW Badges & Notify ---
+  const newUnlockedBadges = BADGE_DEFS.filter(b => b.check(history, streak.count));
+
+  setTimeout(() => {
+    newUnlockedBadges.forEach(b => {
+      // If they have it now, but didn't have it before -> FIRE TOAST!
+      if (!oldUnlocked.includes(b.id)) {
+        showToast(`🏆 New Badge: ${b.icon} ${b.name}!`);
+      }
+    });
+  }, 800);
 }
 // --- NEW: Bookmark Engine ---
 function toggleSaveQuestion(qIndex) {
@@ -3007,6 +3020,30 @@ function loadDashboard() {
 } // <-- This is the actual end of loadDashboard()
 
 // --- NEW: Gamification UI Engine (Cleaned & Optimized) ---
+// The Master List of all Achievements
+const BADGE_DEFS = [
+  { id: 'b1', icon: '🌱', name: 'First Step', desc: 'Took your first test!', check: (h, s) => h.length >= 1 },
+  { id: 'b5', icon: '🏃', name: 'Dedicated', desc: 'Completed 5 tests!', check: (h, s) => h.length >= 5 },
+  { id: 'b20', icon: '🎯', name: 'Focused', desc: 'Completed 20 tests!', check: (h, s) => h.length >= 20 },
+  { id: 'b50', icon: '🏹', name: 'Warrior', desc: 'Completed 50 tests!', check: (h, s) => h.length >= 50 },
+  { id: 'b100', icon: '💯', name: 'Century', desc: 'Completed 100 tests!', check: (h, s) => h.length >= 100 },
+  { id: 'b200', icon: '🚀', name: 'High Flyer', desc: 'Completed 200 tests!', check: (h, s) => h.length >= 200 },
+  { id: 'b500', icon: '🦁', name: 'Legend', desc: 'Completed 500 tests!', check: (h, s) => h.length >= 500 },
+  { id: 'b1000', icon: '🏛️', name: 'Immortal', desc: 'Completed 1000 tests!', check: (h, s) => h.length >= 1000 },
+  { id: 'b_sch', icon: '🏅', name: 'Scholar', desc: 'Scored 80% or higher!', check: (h, s) => h.some(t => t.pct >= 80) },
+  { id: 'b_mas', icon: '👑', name: 'Master', desc: 'Achieved a perfect 100%!', check: (h, s) => h.some(t => t.pct === 100) },
+  { id: 'b_str', icon: '⭐', name: 'On Fire', desc: '3-day streak!', check: (h, s) => s >= 3 } // Pass streak directly
+];
+
+function shareBadges(icons, count) {
+  if (count === 0) {
+    showToast("You haven't unlocked any badges yet!");
+    return;
+  }
+  const url = window.location.href.split('#')[0];
+  const text = `I've unlocked ${count} achievement badges ${icons} on संस्कृत-वर्तिका! 🏆\n\nStart your UGC NET Sanskrit preparation for free: ${url}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
 function renderGamification() {
   const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
   const streak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
@@ -3033,18 +3070,32 @@ function renderGamification() {
 
   let badgesHTML = '';
   
-  // The Rules for Earning Badges (Using safe template literals)
-  if (history.length >= 1) badgesHTML += `<div title="First Step: Took your first test!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">🌱</div>`;
-  if (history.length >= 5) badgesHTML += `<div title="Dedicated: Completed 5 tests!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">🏃</div>`;
-  if (history.some(h => h.pct >= 80)) badgesHTML += `<div title="Scholar: Scored 80% or higher!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">🏅</div>`;
-  if (history.some(h => h.pct === 100)) badgesHTML += `<div title="Master: Achieved a perfect score!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">👑</div>`;
-  if (currentStreak >= 3) badgesHTML += `<div title="On Fire: 3-day streak!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">⭐</div>`;
+  // Dynamic Badge Renderer (Unlocked vs Locked)
+  let unlockedCount = 0;
+  let unlockedIcons = [];
 
-  if (badgesHTML !== '') {
-    badgesContainer.innerHTML = badgesHTML;
-  } else {
-    badgesContainer.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-light);">Take tests to earn badges!</div>';
-  }
+  BADGE_DEFS.forEach(b => {
+    const isUnlocked = b.check(history, currentStreak);
+    if (isUnlocked) {
+      unlockedCount++;
+      unlockedIcons.push(b.icon);
+      badgesHTML += `<div onclick="showToast('${b.icon} ${b.name}: ${b.desc}')" title="${b.name}: ${b.desc}" style="font-size:2rem; cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">${b.icon}</div>`;
+    } else {
+      // Locked state: Greyed out and slightly transparent
+      badgesHTML += `<div onclick="showToast('🔒 Locked: ${b.desc}')" title="Locked: ${b.desc}" style="font-size:2rem; cursor:help; filter: grayscale(100%) opacity(0.25); transition:0.2s;">${b.icon}</div>`;
+    }
+  });
+
+  // Inject badges + The new Share Footer
+  badgesContainer.innerHTML = `
+    <div style="display:flex; gap:12px; flex-wrap:wrap; width:100%;">
+      ${badgesHTML}
+    </div>
+    <div style="width: 100%; display:flex; justify-content:space-between; align-items:center; margin-top:8px; border-top: 1px solid var(--cream-dark); padding-top: 12px;">
+      <span style="font-size:0.8rem; color:var(--text-light); font-weight:600;">${unlockedCount}/${BADGE_DEFS.length} Unlocked</span>
+      <button class="btn btn-sm" style="background:#25D366; color:white; padding: 6px 14px; border-radius: 50px;" onclick="shareBadges('${unlockedIcons.join('')}', ${unlockedCount})">📱 Share via WhatsApp</button>
+    </div>
+  `;
 }
 
 
