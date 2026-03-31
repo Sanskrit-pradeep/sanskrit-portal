@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit:ital@0;1&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
 /* ===== CSS VARIABLES ===== */
 :root {
@@ -779,9 +780,7 @@ footer {
   .stat-card .label { 
     font-size: 0.7rem; 
   }
-  .stats-grid .stat-card:last-child {
-    grid-column: 1 / -1; /* Makes the 5th card stretch beautifully across the bottom */
-  }
+  
 
   /* 4. Mock Tests & Free Services Grids: 2 columns */
   .test-categories-grid { 
@@ -1628,6 +1627,11 @@ footer {
 
     <!-- Stats -->
     <div class="stats-grid">
+      <div class="stat-card" style="cursor:pointer; border: 2px solid transparent; transition: 0.2s; background: linear-gradient(135deg, var(--white), #FFF3E0);" onclick="openSavedQsModal()" onmouseover="this.style.borderColor='var(--saffron)'" onmouseout="this.style.borderColor='transparent'">
+        <div class="icon">🔖</div>
+        <span class="value" id="stat-saved-qs">0</span>
+        <span class="label">Saved Questions<br><span style="font-size:0.65rem;color:var(--saffron);font-weight:600;">Click to view</span></span>
+      </div>
       <div class="stat-card">
         <div class="icon">📝</div>
         <span class="value" id="stat-attempted">0</span>
@@ -1655,6 +1659,22 @@ footer {
       </div>
     </div>
 
+<div style="margin-top:8px; margin-bottom: 24px;">
+      <h3 style="color:var(--brown);margin-bottom:16px;font-size:1.05rem;">🏆 Your Achievements</h3>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        
+        <div style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #FF9800, #F57C00); border-radius: var(--radius-sm); padding: 16px; color: white; text-align: center; box-shadow: 0 4px 12px rgba(245, 124, 0, 0.2);">
+          <div style="font-size: 2rem; margin-bottom: 4px;">🔥 <span id="streak-count" style="font-weight: 800;">0</span></div>
+          <div style="font-size: 0.8rem; font-weight: 600;">Day Streak</div>
+        </div>
+
+        <div style="flex: 2; min-width: 200px; background: var(--white); border-radius: var(--radius-sm); padding: 16px; border: 2px solid var(--cream-dark); display: flex; align-items: center; gap: 16px; flex-wrap: wrap;" id="badges-container">
+          <div style="font-size: 0.85rem; color: var(--text-light);">Take tests to earn badges!</div>
+        </div>
+        
+      </div>
+    </div>
+
     <!-- Test History -->
     <div style="margin-top:8px;">
       <h3 style="color:var(--brown);margin-bottom:16px;font-size:1.05rem;">📊 Recent Test History</h3>
@@ -1676,7 +1696,6 @@ footer {
         </div>
       </div>
     </div>
-
     <!-- Motivational Quote -->
     <div style="background:linear-gradient(135deg,var(--saffron),var(--saffron-dark));border-radius:var(--radius);padding:28px;text-align:center;margin-top:32px;">
       <p style="font-family:var(--font-skt);font-size:1.3rem;color:var(--white);margin-bottom:8px;">उद्योगिनं पुरुषसिंहमुपैति लक्ष्मीः</p>
@@ -1885,7 +1904,6 @@ footer {
         <h4>Connect</h4>
         <a href="https://www.youtube.com/c/SanskritVartika" target="_blank">YouTube</a>
         <a href="https://www.facebook.com/sanskrit.vartika" target="_blank">Facebook</a>
-        <!-- EDIT THIS: Add Telegram and Instagram links -->
         <a href="https://telegram.me/sanskrit_vartika" target="_blank">Telegram</a>
         <a href="https://www.instagram.com/sanskritvartika/">Instagram</a>
         <a href="mailto:enquiry.sanskritvartika@gmail.com">Email Us</a>
@@ -1920,6 +1938,17 @@ footer {
       <button class="btn btn-outline" onclick="cancelExitTest()">← Stay</button>
       <button class="btn" style="background:#F44336;color:white;" onclick="confirmExitTest()">Leave Anyway</button>
     </div>
+  </div>
+</div>
+
+<div id="saved-qs-modal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto; text-align: left; padding: 24px; background: var(--cream);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: sticky; top: -24px; background: var(--cream); padding-top: 24px; padding-bottom: 12px; z-index: 10; border-bottom: 2px solid var(--cream-dark);">
+      <h3 style="color: var(--brown); margin: 0; font-size: 1.2rem;">🔖 Saved Questions</h3>
+      <button onclick="document.getElementById('saved-qs-modal').style.display='none'" style="background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--text-light); line-height: 1;">&times;</button>
+    </div>
+    <div id="saved-qs-container" style="display:flex; flex-direction:column; gap:12px;">
+      </div>
   </div>
 </div>
 
@@ -2414,7 +2443,15 @@ function renderQuestion() {
 function selectOption(i) {
   if (testState.finished) return;
   const idx = testState.current;
-  testState.answers[idx] = i;
+  
+  // If the user clicks the currently selected option, deselect it (leave blank)
+  if (testState.answers[idx] === i) {
+    testState.answers[idx] = undefined;
+  } else {
+    // Otherwise, select the new option
+    testState.answers[idx] = i;
+  }
+  
   renderQuestion();
 }
 
@@ -2513,9 +2550,18 @@ function confirmSubmit() {
       cls = userAns === q.answer ? 'correct-ans' : 'wrong-ans';
       status = userAns === q.answer ? '✅ Correct' : '❌ Wrong';
     }
+    // Check if question is already saved
+    let savedQs = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
+    const isSaved = savedQs.some(sq => sq.q === q.q);
+    const btnText = isSaved ? '⭐ Saved' : '☆ Save';
+    const btnStyle = isSaved ? 'color:var(--saffron);' : 'color:var(--text-light);';
+
     reviewHTML += `
       <div class="review-item ${cls}">
-        <div class="review-q">Q${i+1}. ${q.q}</div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div class="review-q">Q${i+1}. ${q.q}</div>
+          <button id="save-btn-${i}" onclick="toggleSaveQuestion(${i})" style="background:var(--white); border:1px solid var(--cream-dark); border-radius:50px; padding:4px 10px; cursor:pointer; font-weight:600; font-size:0.75rem; transition:0.2s; white-space:nowrap; ${btnStyle}">${btnText}</button>
+        </div>
         <div class="review-ans">${status}${userAns !== undefined ? ` — Your answer: <strong>${q.options[userAns]}</strong>` : ''}</div>
         <div class="review-ans">✔ Correct answer: <strong>${q.options[q.answer]}</strong></div>
         ${q.explanation ? `<div class="review-exp">💡 ${q.explanation}</div>` : ''}
@@ -2787,15 +2833,103 @@ function changeName() {
   localStorage.removeItem('sp_name');
   loadDashboard();
 }
+
 function saveTestResult(name, correct, total) {
   const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
+  const today = new Date().toLocaleDateString('en-IN');
+  
   history.unshift({
     name, correct, total,
     pct: Math.round((correct/total)*100),
-    date: new Date().toLocaleDateString('en-IN')
+    date: today
   });
   if (history.length > 20) history.pop();
   localStorage.setItem('sp_history', JSON.stringify(history));
+
+  // --- NEW: Streak Calculation Engine ---
+  let streak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
+  
+  // Only increase streak if they haven't already taken a test today
+  if (streak.lastDate !== today) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // If they took a test yesterday, increment. Otherwise, reset to 1.
+    if (streak.lastDate === yesterday.toLocaleDateString('en-IN')) {
+      streak.count++;
+    } else {
+      streak.count = 1;
+    }
+    streak.lastDate = today;
+    localStorage.setItem('sp_streak', JSON.stringify(streak));
+  }
+}
+// --- NEW: Bookmark Engine ---
+function toggleSaveQuestion(qIndex) {
+  const q = testState.questions[qIndex];
+  let saved = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
+  const existingIdx = saved.findIndex(sq => sq.q === q.q);
+
+  const btn = document.getElementById('save-btn-' + qIndex);
+
+  if (existingIdx >= 0) {
+    saved.splice(existingIdx, 1);
+    showToast("Removed from saved questions");
+    if(btn) { btn.innerHTML = '☆ Save'; btn.style.color = 'var(--text-light)'; }
+  } else {
+    saved.unshift({
+      q: q.q, options: q.options, answer: q.answer, explanation: q.explanation
+    });
+    showToast("⭐ Question Saved!");
+    if(btn) { btn.innerHTML = '⭐ Saved'; btn.style.color = 'var(--saffron)'; }
+  }
+  localStorage.setItem('sp_saved_qs', JSON.stringify(saved));
+  renderSavedQuestions(); // Update dashboard instantly
+}
+
+function renderSavedQuestions() {
+  const saved = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
+
+  // Update the Stat Card Counter!
+  const statEl = document.getElementById('stat-saved-qs');
+  if (statEl) statEl.textContent = saved.length;
+
+  const container = document.getElementById('saved-qs-container');
+  if(!container) return;
+  
+  if (saved.length === 0) {
+    container.innerHTML = '<div style="background:var(--white); border:2px dashed var(--cream-dark); border-radius:var(--radius-sm); padding:24px; text-align:center; color:var(--text-light); font-size:0.85rem;">No saved questions yet. Click the "☆ Save" button during a test review to bookmark difficult questions!</div>';
+    return;
+  }
+
+  let html = '';
+  saved.forEach((sq, i) => {
+    html += `
+      <div style="background:var(--white); padding:16px 20px; border-radius:var(--radius-sm); border-left:4px solid var(--saffron); box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="font-family:var(--font-skt); font-weight:600; color:var(--brown); margin-bottom:10px; font-size:0.95rem;">${sq.q}</div>
+        <div style="font-size:0.8rem; color:#1B5E20; background:#E8F5E9; padding:6px 10px; border-radius:4px; display:inline-block; margin-bottom:8px;">
+          ✔ Correct: <strong>${sq.options[sq.answer]}</strong>
+        </div>
+        ${sq.explanation ? `<div style="font-size:0.8rem; color:#7B1FA2; font-style:italic; margin-bottom:12px; line-height:1.5;">💡 ${sq.explanation}</div>` : ''}
+        <div style="text-align:right;">
+          <button onclick="removeSavedQuestion(${i})" style="background:none; border:none; color:#F44336; cursor:pointer; font-size:0.8rem; font-weight:600; opacity:0.8;">🗑️ Remove</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function removeSavedQuestion(index) {
+  let saved = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
+  saved.splice(index, 1);
+  localStorage.setItem('sp_saved_qs', JSON.stringify(saved));
+  renderSavedQuestions();
+  showToast("Question removed");
+}
+function openSavedQsModal() {
+  renderSavedQuestions();
+  document.getElementById('saved-qs-modal').style.display = 'flex';
 }
 function loadDashboard() {
   const name = localStorage.getItem('sp_name');
@@ -2836,7 +2970,51 @@ function loadDashboard() {
         <td>${h.date}</td>
       </tr>`).join('');
   }
+  renderSavedQuestions();
+  renderGamification(); // <-- We added the call to turn the gamification on!
+} // <-- This is the actual end of loadDashboard()
+
+// --- NEW: Gamification UI Engine (Cleaned & Optimized) ---
+function renderGamification() {
+  const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
+  const streak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
+  
+  // Verify if the streak was broken (they missed yesterday)
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const todayStr = today.toLocaleDateString('en-IN');
+  const yesterdayStr = yesterday.toLocaleDateString('en-IN');
+  
+  let currentStreak = streak.count;
+  if (streak.lastDate !== todayStr && streak.lastDate !== yesterdayStr) {
+    currentStreak = 0; // Streak broken!
+  }
+
+  // Update Streak Number
+  const streakEl = document.getElementById('streak-count');
+  if (streakEl) streakEl.textContent = currentStreak;
+
+  // Render Badges
+  const badgesContainer = document.getElementById('badges-container');
+  if (!badgesContainer) return;
+
+  let badgesHTML = '';
+  
+  // The Rules for Earning Badges (Using safe template literals)
+  if (history.length >= 1) badgesHTML += `<div title="First Step: Took your first test!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">🌱</div>`;
+  if (history.length >= 5) badgesHTML += `<div title="Dedicated: Completed 5 tests!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">🏃</div>`;
+  if (history.some(h => h.pct >= 80)) badgesHTML += `<div title="Scholar: Scored 80% or higher!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">🏅</div>`;
+  if (history.some(h => h.pct === 100)) badgesHTML += `<div title="Master: Achieved a perfect score!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">👑</div>`;
+  if (currentStreak >= 3) badgesHTML += `<div title="On Fire: 3-day streak!" style="font-size:2rem; cursor:help; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">⭐</div>`;
+
+  if (badgesHTML !== '') {
+    badgesContainer.innerHTML = badgesHTML;
+  } else {
+    badgesContainer.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-light);">Take tests to earn badges!</div>';
+  }
 }
+
 
 // Feature: Search/Filter Notes & Videos
 function filterNotes() {
