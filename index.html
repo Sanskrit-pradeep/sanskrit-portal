@@ -3090,14 +3090,14 @@ function renderGamification() {
     }
   });
 
-  // Inject badges + The new Share Footer
+  // Inject badges + The new Share Footer (Fluid Mobile Layout)
   badgesContainer.innerHTML = `
-    <div style="display:flex; gap:12px; flex-wrap:wrap; width:100%;">
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:center; width:100%;">
       ${badgesHTML}
     </div>
-    <div style="width: 100%; display:flex; justify-content:space-between; align-items:center; margin-top:8px; border-top: 1px solid var(--cream-dark); padding-top: 12px;">
-      <span style="font-size:0.8rem; color:var(--text-light); font-weight:600;">${unlockedCount}/${BADGE_DEFS.length} Unlocked</span>
-      <button class="btn btn-sm" style="background:#25D366; color:white; padding: 6px 14px; border-radius: 50px;" onclick="shareBadges('${unlockedIcons.join('')}', ${unlockedCount})">📱 Share via WhatsApp</button>
+    <div style="width: 100%; display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; margin-top:16px; border-top: 1px solid var(--cream-dark); padding-top: 16px;">
+      <span style="font-size:0.85rem; color:var(--text-light); font-weight:700; text-align:center; flex: 1 1 auto;">🏆 ${unlockedCount}/${BADGE_DEFS.length} Unlocked</span>
+      <button class="btn btn-sm" style="background:#25D366; color:white; padding: 8px 16px; border-radius: 50px; font-weight:600; flex: 1 1 auto; justify-content:center;" onclick="shareBadges('${unlockedIcons.join('')}', ${unlockedCount})">📱 Share via WhatsApp</button>
     </div>
   `;
 }
