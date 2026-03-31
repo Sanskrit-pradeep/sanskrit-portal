@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit:ital@0;1&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
 /* ===== CSS VARIABLES ===== */
@@ -856,7 +857,7 @@ footer {
 }
 /* ===== TOAST NOTIFICATIONS & MODALS ===== */
 #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
-.toast { background: #262626; color: var(--white); padding: 14px 24px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); font-size: 0.9rem; border-left: 4px solid var(--saffron); font-weight: 500; }.toast.show { transform: translateX(0); }
+.toast { background: #269b17; color: var(--white); padding: 14px 24px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); font-size: 0.9rem; border-left: 4px solid var(--saffron); font-weight: 500; }.toast.show { transform: translateX(0); }
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 20px; }
 .modal-content { background: var(--white); padding: 32px; border-radius: var(--radius); max-width: 400px; width: 100%; text-align: center; box-shadow: var(--shadow-lg); animation: scaleIn 0.3s ease; }
@@ -3020,18 +3021,21 @@ function loadDashboard() {
 
 // --- NEW: Gamification UI Engine (Cleaned & Optimized) ---
 // The Master List of all Achievements
+// --- NEW: Master Badge Dictionary & Share Engine ---
+const iconStyle = 'color: var(--gold); filter: drop-shadow(0 4px 6px rgba(255,215,0,0.5));';
 const BADGE_DEFS = [
-  { id: 'b1', icon: '🌱', name: 'First Step', desc: 'Took your first test!', check: (h, s) => h.length >= 1 },
-  { id: 'b5', icon: '🏃', name: 'Dedicated', desc: 'Completed 5 tests!', check: (h, s) => h.length >= 5 },
-  { id: 'b20', icon: '🎯', name: 'Focused', desc: 'Completed 20 tests!', check: (h, s) => h.length >= 20 },
-  { id: 'b50', icon: '🏹', name: 'Warrior', desc: 'Completed 50 tests!', check: (h, s) => h.length >= 50 },
-  { id: 'b100', icon: '💯', name: 'Century', desc: 'Completed 100 tests!', check: (h, s) => h.length >= 100 },
-  { id: 'b200', icon: '🚀', name: 'High Flyer', desc: 'Completed 200 tests!', check: (h, s) => h.length >= 200 },
-  { id: 'b500', icon: '🦁', name: 'Legend', desc: 'Completed 500 tests!', check: (h, s) => h.length >= 500 },
-  { id: 'b1000', icon: '🏛️', name: 'Immortal', desc: 'Completed 1000 tests!', check: (h, s) => h.length >= 1000 },
-  { id: 'b_sch', icon: '🏅', name: 'Scholar', desc: 'Scored 80% or higher!', check: (h, s) => h.some(t => t.pct >= 80) },
-  { id: 'b_mas', icon: '👑', name: 'Master', desc: 'Achieved a perfect 100%!', check: (h, s) => h.some(t => t.pct === 100) },
-  { id: 'b_str', icon: '⭐', name: 'On Fire', desc: '3-day streak!', check: (h, s) => s >= 3 } // Pass streak directly
+  { id: 'b1', textIcon: '🌱', icon: `<i class="fa-solid fa-seedling" style="${iconStyle}"></i>`, name: 'First Step', desc: 'Took your first test!', check: (h, s) => h.length >= 1 },
+  { id: 'b5', textIcon: '🏃', icon: `<i class="fa-solid fa-medal" style="${iconStyle}"></i>`, name: 'Dedicated', desc: 'Completed 5 tests!', check: (h, s) => h.length >= 5 },
+  { id: 'b20', textIcon: '🎯', icon: `<i class="fa-solid fa-bullseye" style="${iconStyle}"></i>`, name: 'Focused', desc: 'Completed 20 tests!', check: (h, s) => h.length >= 20 },
+  { id: 'b50', textIcon: '🏹', icon: `<i class="fa-solid fa-shield-halved" style="${iconStyle}"></i>`, name: 'Warrior', desc: 'Completed 50 tests!', check: (h, s) => h.length >= 50 },
+  { id: 'b100', textIcon: '💯', icon: `<i class="fa-solid fa-award" style="${iconStyle}"></i>`, name: 'Century', desc: 'Completed 100 tests!', check: (h, s) => h.length >= 100 },
+  { id: 'b200', textIcon: '🚀', icon: `<i class="fa-solid fa-rocket" style="${iconStyle}"></i>`, name: 'High Flyer', desc: 'Completed 200 tests!', check: (h, s) => h.length >= 200 },
+  { id: 'b500', textIcon: '🦁', icon: `<i class="fa-solid fa-gem" style="${iconStyle}"></i>`, name: 'Legend', desc: 'Completed 500 tests!', check: (h, s) => h.length >= 500 },
+  { id: 'b1000', textIcon: '🏛️', icon: `<i class="fa-solid fa-monument" style="${iconStyle}"></i>`, name: 'Immortal', desc: 'Completed 1000 tests!', check: (h, s) => h.length >= 1000 },
+  { id: 'b_sch', textIcon: '🏅', icon: `<i class="fa-solid fa-user-graduate" style="${iconStyle}"></i>`, name: 'Scholar', desc: 'Scored 80% or higher!', check: (h, s) => h.some(t => t.pct >= 80) },
+  { id: 'b_mas', textIcon: '👑', icon: `<i class="fa-solid fa-crown" style="${iconStyle}"></i>`, name: 'Master', desc: 'Achieved a perfect 100%!', check: (h, s) => h.some(t => t.pct === 100) },
+  { id: 'b_str', textIcon: '⭐', icon: `<i class="fa-solid fa-fire-flame-curved" style="${iconStyle}"></i>`, name: 'On Fire', desc: '3-day streak!', check: (h, s) => s >= 3 },
+  { id: 'b_str5', textIcon: '☄️', icon: `<i class="fa-solid fa-meteor" style="${iconStyle}"></i>`, name: 'Unstoppable', desc: '5-day streak!', check: (h, s) => s >= 5 }
 ];
 
 function shareBadges(icons, count) {
@@ -3073,12 +3077,13 @@ function renderGamification() {
   let unlockedCount = 0;
   let unlockedIcons = [];
 
+  // Dynamic Badge Renderer (Unlocked vs Locked)
   BADGE_DEFS.forEach(b => {
     const isUnlocked = b.check(history, currentStreak);
     if (isUnlocked) {
       unlockedCount++;
-      unlockedIcons.push(b.icon);
-      badgesHTML += `<div onclick="showToast('${b.icon} ${b.name}: ${b.desc}')" title="${b.name}: ${b.desc}" style="font-size:2rem; cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">${b.icon}</div>`;
+      unlockedIcons.push(b.textIcon); // Sends the text emoji to WhatsApp!
+      badgesHTML += `<div onclick="showToast('${b.textIcon} ${b.name}: ${b.desc}')" title="${b.name}: ${b.desc}" style="font-size:2rem; cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">${b.icon}</div>`;
     } else {
       // Locked state: Greyed out and slightly transparent
       badgesHTML += `<div onclick="showToast('🔒 Locked: ${b.desc}')" title="Locked: ${b.desc}" style="font-size:2rem; cursor:help; filter: grayscale(100%) opacity(0.25); transition:0.2s;">${b.icon}</div>`;
