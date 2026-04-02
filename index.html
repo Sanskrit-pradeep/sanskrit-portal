@@ -9,6 +9,14 @@
 <meta property="og:title" content="संस्कृत-वर्तिका | UGC NET Sanskrit Preparation">
 <meta property="og:description" content="Free notes, mock tests, and video lectures for UGC NTA NET Paper-2 Sanskrit.">
 <meta property="og:type" content="website">
+<!-- App Install Settings (PWA) -->
+<meta name="theme-color" content="#FF6B00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="संस्कृत-वर्तिका">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='92' fill='%23FFFFFF' stroke='%23FF6B00' stroke-width='12'/%3E%3Ccircle cx='100' cy='100' r='34' fill='%23FFF176'/%3E%3Crect x='99' y='82' width='2' height='12' fill='%233B1F0A' /%3E%3Crect x='94' y='93' width='12' height='42' rx='2' fill='%231e3a8a' /%3E%3Cpath d='M100 62 Q112 85 100 94 Q88 85 100 62 Z' fill='%23FF6B00' /%3E%3Cpath d='M100 74 Q106 85 100 92 Q94 85 100 74 Z' fill='%23FFF176' /%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit:ital@0;1&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -2172,7 +2180,7 @@ const catNames = {
   darshan: 'दर्शनम्', sahitya: 'साहित्यम्', other: 'अन्यानि'
 };
 
-// 2. THE CENTRAL DATA FETCHER (Upgraded with Free Filters)
+// 2. THE CENTRAL DATA FETCHER (Upgraded with Free Filters & TIMEOUT)
 async function fetchQuestions(cat) {
   if (allQuestions[cat]) return true; // Already loaded in memory!
 
@@ -2180,7 +2188,17 @@ async function fetchQuestions(cat) {
   if (!targetURL || targetURL.includes('PASTE_')) return false;
 
   try {
-    const response = await fetch(targetURL);
+    // --- NEW CODE: The 10-Second Stopwatch ---
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 10000 ms = 10 seconds
+
+    // We pass the "stopwatch" to the fetch request
+    const response = await fetch(targetURL, { signal: controller.signal });
+    
+    // If it succeeds before 10 seconds, we stop the stopwatch!
+    clearTimeout(timeoutId); 
+    // ----------------------------------------
+
     const textData = await response.text();
     let data;
     try { data = JSON.parse(textData); } catch (e) { return false; }
@@ -2228,7 +2246,16 @@ async function fetchQuestions(cat) {
       }
     });
     return true;
-  } catch (error) { console.error(error); return false; }
+  } catch (error) { 
+    // --- NEW CODE: Handle the timeout error silently ---
+    if (error.name === 'AbortError') {
+      console.warn("Connection timed out. Took longer than 10 seconds.");
+    } else {
+      console.error("Fetch error:", error); 
+    }
+    return false; // Returning false tells your UI to hide the spinner and show the error toast
+    // ----------------------------------------
+  }
 }
 
 // Standard Mock Test Loader (For Paid/Main Portal)
@@ -2435,16 +2462,29 @@ function renderQuestion() {
   const q = qs[idx];
   if (!q) return;
 
+  // The question text itself is already safely handled!
   document.getElementById('q-number').textContent = `Question ${idx+1} of ${qs.length}`;
-  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-text').textContent = q.q; 
 
   const optList = document.getElementById('options-list');
   optList.innerHTML = '';
+  
   q.options.forEach((opt, i) => {
     const div = document.createElement('div');
     div.className = 'option-item' + (testState.answers[idx] === i ? ' selected' : '');
-    const safeOpt = String(opt).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
-div.innerHTML = `<div class="option-label">${String.fromCharCode(65+i)}</div><div>${safeOpt}</div>`;
+    
+    // --- NEW SAFE CODE: Build elements securely instead of injecting raw HTML ---
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'option-label';
+    labelDiv.textContent = String.fromCharCode(65 + i); // Safely sets A, B, C, or D
+    
+    const textDiv = document.createElement('div');
+    textDiv.textContent = opt; // Forces the browser to treat your sheet data ONLY as text!
+
+    div.appendChild(labelDiv);
+    div.appendChild(textDiv);
+    // --------------------------------------------------------------------------
+
     div.onclick = () => selectOption(i);
     optList.appendChild(div);
   });
