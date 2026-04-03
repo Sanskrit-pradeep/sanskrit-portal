@@ -996,28 +996,52 @@
       
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h3 style="color: var(--brown);">Registered Students (<span id="admin-user-count">0</span>)</h3>
-        <button class="btn btn-sm" style="background: var(--cream-dark); color: var(--brown);" onclick="loadAdminDashboard()">🔄 Refresh Data</button>
+        <button class="btn btn-sm" style="background: var(--cream-dark); color: var(--brown);" onclick="loadAdminDashboard()">🔄 Sync Cloud</button>
       </div>
 
-      <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-sm); border: 1px solid var(--cream-dark);">
-        <table class="history-table" style="min-width: 900px;">
-          <thead style="background: #b71c1c; color: white;">
+      <!-- NEW: Advanced Control Panel -->
+      <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: var(--cream); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--cream-dark);">
+        
+        <input type="text" id="admin-search" class="form-input" style="flex: 1; min-width: 200px; border-color: var(--gold);" placeholder="🔍 Search Name, Email, or WhatsApp..." onkeyup="filterAndRenderAdminTable()">
+        
+        <select id="admin-filter-status" class="form-input" style="width: auto; min-width: 140px;" onchange="filterAndRenderAdminTable()">
+          <option value="all">All Users</option>
+          <option value="vip">👑 Active VIPs</option>
+          <option value="free">Free Users</option>
+          <option value="expired">Expired VIPs</option>
+        </select>
+
+        <select id="admin-sort-by" class="form-input" style="width: auto; min-width: 150px;" onchange="filterAndRenderAdminTable()">
+          <option value="newest">Sort: Newest First</option>
+          <option value="oldest">Sort: Oldest First</option>
+          <option value="expiring">Sort: Expiring Soon</option>
+        </select>
+
+        <button class="btn btn-primary btn-sm" style="background: #FF9800; white-space: nowrap;" onclick="document.getElementById('bulk-manage-modal').style.display='flex'">🎁 Bulk Extend VIP</button>
+      </div>
+
+      <!-- NEW: Scrollable Table Container -->
+      <div style="width: 100%; max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-sm); border: 1px solid var(--cream-dark); position: relative;">
+        <table class="history-table" style="min-width: 950px; position: relative; border-collapse: separate; border-spacing: 0;">
+          <thead style="position: sticky; top: 0; z-index: 10;">
             <tr>
-              <th style="padding: 14px 16px; text-align: left;">Name</th>
-              <th style="padding: 14px 16px; text-align: left;">Contact</th>
-              <th style="padding: 14px 16px; text-align: left;">Joined</th>
-              <th style="padding: 14px 16px; text-align: left;">Status</th>
-              <th style="padding: 14px 16px; text-align: left;">Validity</th>
-              <th style="padding: 14px 16px; text-align: right;">Action</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: left; border-bottom: 2px solid #8e1515;">Name</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: left; border-bottom: 2px solid #8e1515;">Email</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: left; border-bottom: 2px solid #8e1515;">WhatsApp</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: left; border-bottom: 2px solid #8e1515;">Joined</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: left; border-bottom: 2px solid #8e1515;">Status</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: left; border-bottom: 2px solid #8e1515;">Validity</th>
+              <th style="background: #b71c1c; color: white; padding: 14px 16px; text-align: right; border-bottom: 2px solid #8e1515;">Action</th>
             </tr>
           </thead>
           <tbody id="admin-users-body">
-            <tr><td colspan="6" style="text-align: center; padding: 24px;">Loading student data...</td></tr>
+            <tr><td colspan="7" style="text-align: center; padding: 24px;">Loading student data...</td></tr>
           </tbody>
         </table>
       </div>
       
     </div>
+    
     <!-- ================= ERROR REPORTS TABLE ================= -->
     <div style="background: var(--white); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow-lg); border-top: 4px solid #FF9800; margin-top: 32px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
@@ -1025,15 +1049,15 @@
         <button class="btn btn-sm" style="background: var(--cream-dark); color: var(--brown);" onclick="loadAdminReports()">🔄 Refresh Reports</button>
       </div>
 
-      <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-sm); border: 1px solid var(--cream-dark);">
-        <table class="history-table" style="min-width: 900px;">
-          <thead style="background: #FF9800; color: white;">
+      <div style="width: 100%; max-height: 400px; overflow-y: auto; border-radius: var(--radius-sm); border: 1px solid var(--cream-dark);">
+        <table class="history-table" style="min-width: 900px; border-collapse: separate; border-spacing: 0;">
+          <thead style="position: sticky; top: 0; z-index: 10;">
             <tr>
-              <th style="padding: 14px 16px; text-align: left;">Test & Question</th>
-              <th style="padding: 14px 16px; text-align: left;">Reason & Comment</th>
-              <th style="padding: 14px 16px; text-align: left;">Reported By</th>
-              <th style="padding: 14px 16px; text-align: left;">Date</th>
-              <th style="padding: 14px 16px; text-align: right;">Action</th>
+              <th style="background: #FF9800; color: white; padding: 14px 16px; text-align: left;">Test & Question</th>
+              <th style="background: #FF9800; color: white; padding: 14px 16px; text-align: left;">Reason & Comment</th>
+              <th style="background: #FF9800; color: white; padding: 14px 16px; text-align: left;">Reported By</th>
+              <th style="background: #FF9800; color: white; padding: 14px 16px; text-align: left;">Date</th>
+              <th style="background: #FF9800; color: white; padding: 14px 16px; text-align: right;">Action</th>
             </tr>
           </thead>
           <tbody id="admin-reports-body">
@@ -1250,6 +1274,36 @@
   </div>
 </div>
 
+<!-- ==================== BULK MANAGE MODAL ==================== -->
+<div id="bulk-manage-modal" class="modal-overlay" style="z-index: 3500;">
+  <div class="modal-content" style="text-align: left; max-width: 450px;">
+    <h3 style="color: #FF9800; margin-bottom: 8px;">🎁 Bulk Extend VIP</h3>
+    <p style="color: var(--text-mid); font-size: 0.85rem; margin-bottom: 20px;">Add extra VIP days to a specific group of students instantly. (Lifetime VIPs will not be affected).</p>
+    
+    <div class="form-group">
+      <label class="form-label">Target Audience</label>
+      <select id="bulk-target-group" class="form-input">
+        <option value="all">All Registered Students</option>
+        <option value="vip">Only Active VIPs</option>
+        <option value="free">Only Free Users</option>
+        <option value="expired">Only Expired VIPs</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-top: 16px;">
+      <label class="form-label">Days to Add</label>
+      <input type="number" id="bulk-days" class="form-input" placeholder="e.g., 2" min="1" max="365">
+      <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 6px; line-height: 1.4;">
+        For active VIPs, this adds to their existing expiry date. For free/expired users, it grants VIP starting from today.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-top: 28px;">
+      <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="document.getElementById('bulk-manage-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" style="flex: 1; justify-content: center; background: #FF9800;" id="bulk-execute-btn" onclick="executeBulkUpdate()">Execute Update</button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 

@@ -1719,85 +1719,130 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// === SECRET ADMIN DASHBOARD LOGIC ===
+// === UPGRADED ADMIN DASHBOARD ENGINE (Search/Sort/Bulk) ===
 // ==========================================
-let adminUserList = []; // Saves the downloaded list
+let adminUserList = []; // Master list from Firebase
 
+// 1. Fetch data from Firebase ONCE
 async function loadAdminDashboard() {
   if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    document.getElementById('admin-users-body').innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">⚠️ Access Denied.</td></tr>';
+    document.getElementById('admin-users-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">⚠️ Access Denied.</td></tr>';
     return;
   }
 
-  const tbody = document.getElementById('admin-users-body');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Fetching data from Cloud...</td></tr>';
+  document.getElementById('admin-users-body').innerHTML = '<tr><td colspan="7" style="text-align: center;">Fetching data from Cloud...</td></tr>';
 
   try {
-    const snapshot = await db.collection("users").orderBy("createdAt", "desc").get();
-    document.getElementById('admin-user-count').textContent = snapshot.size;
+    const snapshot = await db.collection("users").get(); // Get ALL users (we will sort in JS)
     
-    if (snapshot.empty) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No students found yet.</td></tr>';
-      return;
-    }
-
     adminUserList = [];
-    let html = '';
-    
     snapshot.forEach(doc => {
       const data = doc.data();
-      data.uid = doc.id; // Save their secret folder ID
-      adminUserList.push(data);
+      data.uid = doc.id;
       
-      const dateJoined = data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-IN') : 'Unknown';
-      
-      // Calculate Status & Validity
-      let vipBadge = '<span style="background: #E0E0E0; color: #757575; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Free</span>';
-      let validityText = '<span style="color: #9E9E9E;">—</span>';
-      
+      // Calculate Exact Status for Filtering
+      data.computedStatus = "free";
       if (data.isPremium) {
-        vipBadge = '<span style="background: #FFF3E0; color: #E65100; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">👑 VIP</span>';
-        
         if (data.premiumExpiry) {
-          const expDate = new Date(data.premiumExpiry);
-          const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
-          
-          if (daysLeft > 0) {
-            validityText = `<span style="color: #2E7D32; font-weight: 600;">${daysLeft} days left</span><br><span style="font-size:0.7rem; color:var(--text-light);">${expDate.toLocaleDateString('en-IN')}</span>`;
-          } else {
-            validityText = `<span style="color: #D32F2F; font-weight: 600;">Expired</span>`;
-            vipBadge = '<span style="background: #FFEBEE; color: #D32F2F; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Expired VIP</span>';
-          }
+          if (new Date(data.premiumExpiry) > new Date()) data.computedStatus = "vip";
+          else data.computedStatus = "expired";
         } else {
-          validityText = `<span style="color: #1976D2; font-weight: 600;">Lifetime Access</span>`;
+          data.computedStatus = "vip"; // Lifetime
         }
       }
-
-      let waLink = data.whatsapp ? `<a href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}" target="_blank" style="color: #25D366; font-weight: bold; text-decoration: underline;">${data.whatsapp}</a>` : '<span style="color: #ccc;">N/A</span>';
-
-      html += `
-        <tr style="border-bottom: 1px solid var(--cream-dark);">
-          <td style="padding: 14px 16px; font-weight: 600; color: var(--brown);">${data.name || 'Unknown'}</td>
-          <td style="padding: 14px 16px;"><div style="color: var(--text-mid); margin-bottom:4px;">${data.email}</div>${waLink}</td>
-          <td style="padding: 14px 16px; color: var(--text-light); font-size: 0.85rem;">${dateJoined}</td>
-          <td style="padding: 14px 16px;">${vipBadge}</td>
-          <td style="padding: 14px 16px; font-size: 0.85rem;">${validityText}</td>
-          <td style="padding: 14px 16px; text-align: right;">
-            <button class="btn btn-sm btn-outline" style="padding: 4px 12px;" onclick="openAdminEdit('${data.uid}')">⚙️ Manage</button>
-          </td>
-        </tr>
-      `;
+      adminUserList.push(data);
     });
 
-    tbody.innerHTML = html;
-
+    filterAndRenderAdminTable(); // Push to the screen!
   } catch (error) {
-    console.error("Admin fetch error:", error);
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+    document.getElementById('admin-users-body').innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
   }
 }
 
-// Open the Edit Modal
+// 2. The Universal Search, Filter, and Sort Engine
+function filterAndRenderAdminTable() {
+  const searchQuery = document.getElementById('admin-search').value.toLowerCase();
+  const statusFilter = document.getElementById('admin-filter-status').value;
+  const sortBy = document.getElementById('admin-sort-by').value;
+
+  // A. Filter the Data
+  let filteredList = adminUserList.filter(user => {
+    // Search match
+    const nameStr = (user.name || "").toLowerCase();
+    const emailStr = (user.email || "").toLowerCase();
+    const waStr = (user.whatsapp || "").toLowerCase();
+    const matchesSearch = nameStr.includes(searchQuery) || emailStr.includes(searchQuery) || waStr.includes(searchQuery);
+    
+    // Status match
+    const matchesStatus = (statusFilter === "all") || (user.computedStatus === statusFilter);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // B. Sort the Data
+  filteredList.sort((a, b) => {
+    if (sortBy === "newest") {
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    } else if (sortBy === "oldest") {
+      return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+    } else if (sortBy === "expiring") {
+      // Put lifetime (null expiry) at the bottom, sort dates properly
+      let dateA = (a.isPremium && a.premiumExpiry) ? new Date(a.premiumExpiry).getTime() : 9999999999999;
+      let dateB = (b.isPremium && b.premiumExpiry) ? new Date(b.premiumExpiry).getTime() : 9999999999999;
+      return dateA - dateB;
+    }
+  });
+
+  // C. Render to Screen
+  document.getElementById('admin-user-count').textContent = filteredList.length;
+  const tbody = document.getElementById('admin-users-body');
+  
+  if (filteredList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-light);">No students match this criteria.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  filteredList.forEach(data => {
+    const dateJoined = data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-IN') : 'Unknown';
+    let vipBadge = '', validityText = '';
+
+    if (data.computedStatus === "free") {
+      vipBadge = '<span style="background: #E0E0E0; color: #757575; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Free</span>';
+      validityText = '<span style="color: #9E9E9E;">—</span>';
+    } else if (data.computedStatus === "vip") {
+      vipBadge = '<span style="background: #FFF3E0; color: #E65100; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">👑 VIP</span>';
+      if (data.premiumExpiry) {
+        const daysLeft = Math.ceil((new Date(data.premiumExpiry) - new Date()) / (1000 * 60 * 60 * 24));
+        validityText = `<span style="color: #2E7D32; font-weight: 600;">${daysLeft} days left</span><br><span style="font-size:0.7rem; color:var(--text-light);">${new Date(data.premiumExpiry).toLocaleDateString('en-IN')}</span>`;
+      } else {
+        validityText = `<span style="color: #1976D2; font-weight: 600;">Lifetime Access</span>`;
+      }
+    } else if (data.computedStatus === "expired") {
+      vipBadge = '<span style="background: #FFEBEE; color: #D32F2F; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Expired VIP</span>';
+      validityText = `<span style="color: #D32F2F; font-weight: 600;">Expired</span>`;
+    }
+
+    let waLink = data.whatsapp ? `<a href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}" target="_blank" style="color: #25D366; font-weight: bold; text-decoration: underline;">${data.whatsapp}</a>` : '<span style="color: #ccc;">—</span>';
+
+    html += `
+      <tr style="border-bottom: 1px solid var(--cream-dark); background: var(--white);">
+        <td style="padding: 14px 16px; font-weight: 600; color: var(--brown);">${data.name || 'Unknown'}</td>
+        <td style="padding: 14px 16px; color: var(--text-mid); font-size: 0.85rem;">${data.email}</td>
+        <td style="padding: 14px 16px;">${waLink}</td>
+        <td style="padding: 14px 16px; color: var(--text-light); font-size: 0.85rem;">${dateJoined}</td>
+        <td style="padding: 14px 16px;">${vipBadge}</td>
+        <td style="padding: 14px 16px; font-size: 0.85rem;">${validityText}</td>
+        <td style="padding: 14px 16px; text-align: right;">
+          <button class="btn btn-sm btn-outline" style="padding: 4px 12px;" onclick="openAdminEdit('${data.uid}')">⚙️ Manage</button>
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+// 3. Individual Management
 function openAdminEdit(uid) {
   const user = adminUserList.find(u => u.uid === uid);
   if (!user) return;
@@ -1805,10 +1850,8 @@ function openAdminEdit(uid) {
   document.getElementById('admin-edit-name').textContent = `${user.name} (${user.email})`;
   document.getElementById('admin-edit-status').value = user.isPremium ? "true" : "false";
 
-  // Format Date for HTML Input (YYYY-MM-DD)
   if (user.premiumExpiry) {
-    const d = new Date(user.premiumExpiry);
-    document.getElementById('admin-edit-expiry').value = d.toISOString().split('T')[0];
+    document.getElementById('admin-edit-expiry').value = new Date(user.premiumExpiry).toISOString().split('T')[0];
   } else {
     document.getElementById('admin-edit-expiry').value = '';
   }
@@ -1817,33 +1860,87 @@ function openAdminEdit(uid) {
   document.getElementById('admin-edit-modal').style.display = 'flex';
 }
 
-// Save Changes to Cloud
 async function saveAdminEdit(uid) {
   const btn = document.getElementById('admin-edit-save-btn');
-  btn.textContent = "Saving...";
-  btn.disabled = true;
+  btn.textContent = "Saving..."; btn.disabled = true;
 
   const isPremium = document.getElementById('admin-edit-status').value === "true";
   const expiryVal = document.getElementById('admin-edit-expiry').value;
-
-  let expiryDate = null;
-  if (isPremium && expiryVal) {
-    expiryDate = new Date(expiryVal).toISOString(); // Converts back to cloud format
-  }
+  const expiryDate = (isPremium && expiryVal) ? new Date(expiryVal).toISOString() : null;
 
   try {
-    await db.collection('users').doc(uid).update({
-      isPremium: isPremium,
-      premiumExpiry: expiryDate
-    });
-    showToast("✅ Student account updated successfully!");
+    await db.collection('users').doc(uid).update({ isPremium: isPremium, premiumExpiry: expiryDate });
+    showToast("✅ Student account updated!");
     document.getElementById('admin-edit-modal').style.display = 'none';
-    loadAdminDashboard(); // Refresh the table automatically
+    loadAdminDashboard(); // Refresh full data
+  } catch (error) { alert(error.message); } 
+  finally { btn.textContent = "Save Changes"; btn.disabled = false; }
+}
+
+// 4. BULK MANAGE SCRIPT (The safe chunking algorithm)
+async function executeBulkUpdate() {
+  const targetGroup = document.getElementById('bulk-target-group').value;
+  const daysToAdd = parseInt(document.getElementById('bulk-days').value);
+  
+  if (!daysToAdd || daysToAdd <= 0) {
+    alert("Please enter a valid number of days.");
+    return;
+  }
+
+  // Filter which users to actually update based on dropdown
+  const usersToUpdate = adminUserList.filter(u => targetGroup === "all" || u.computedStatus === targetGroup);
+  
+  if (usersToUpdate.length === 0) {
+    alert("No users found in this category.");
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to add ${daysToAdd} VIP days to ${usersToUpdate.length} students?`)) return;
+
+  const btn = document.getElementById('bulk-execute-btn');
+  btn.textContent = "Processing..."; btn.disabled = true;
+
+  try {
+    // Firestore limits batch writes to 500 operations at a time.
+    // We break our list into safe chunks of 200.
+    const chunkSize = 200;
+    for (let i = 0; i < usersToUpdate.length; i += chunkSize) {
+      const chunk = usersToUpdate.slice(i, i + chunkSize);
+      const batch = db.batch();
+
+      chunk.forEach(user => {
+        const userRef = db.collection("users").doc(user.uid);
+        let newExpiry = new Date(); // Default starting point is today
+
+        // If they are already an Active VIP, add to their existing date
+        if (user.computedStatus === "vip" && user.premiumExpiry) {
+          newExpiry = new Date(user.premiumExpiry);
+        }
+        
+        // Skip Lifetime users
+        if (user.computedStatus === "vip" && !user.premiumExpiry) return; 
+
+        // Add the extra days
+        newExpiry.setDate(newExpiry.getDate() + daysToAdd);
+
+        batch.update(userRef, {
+          isPremium: true,
+          premiumExpiry: newExpiry.toISOString()
+        });
+      });
+
+      await batch.commit(); // Execute this chunk
+    }
+
+    showToast(`✅ Successfully updated ${usersToUpdate.length} students!`);
+    document.getElementById('bulk-manage-modal').style.display = 'none';
+    document.getElementById('bulk-days').value = '';
+    loadAdminDashboard(); // Refresh UI
+    
   } catch (error) {
-    alert("Error updating student: " + error.message);
+    alert("Error during bulk update: " + error.message);
   } finally {
-    btn.textContent = "Save Changes";
-    btn.disabled = false;
+    btn.textContent = "Execute Update"; btn.disabled = false;
   }
 }
 
