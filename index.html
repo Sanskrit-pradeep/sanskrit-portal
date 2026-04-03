@@ -454,6 +454,27 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
   font-size: 0.7rem; font-weight: 700; padding: 2px 10px; border-radius: 50px;
   margin-top: 10px; position: relative;
 }
+/* --- PREMIUM LOCK OVERLAY --- */
+.test-cat-card.locked-card {
+  filter: grayscale(80%);
+  cursor: pointer;
+}
+.test-cat-card.locked-card::after {
+  content: '🔒';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 1.1rem;
+  background: var(--white);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border: 1px solid var(--cream-dark);
+}
 
 /* Test Interface */
 #test-interface { display: none; }
@@ -948,7 +969,41 @@ footer {
 }
 
 </style>
+
+<!-- Firebase 01 -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 </head>
+<!-- Firebase 02 -->
+<div id="auth-modal" class="modal-overlay" style="display:none; z-index: 3000;">
+    <div class="modal-content" style="max-width: 400px;">
+      <h2 id="auth-title">Welcome Back</h2>
+      <p id="auth-subtitle" style="color: var(--text-light); margin-bottom: 20px;">Log in to track your scores.</p>
+      
+      <input type="text" id="auth-name" class="form-input" placeholder="Full Name" style="display: none; margin-bottom: 12px;">
+      <!-- NEW: WhatsApp Number Field -->
+      <input type="tel" id="auth-whatsapp" class="form-input" placeholder="WhatsApp Number" style="display: none; margin-bottom: 12px;">
+      
+      <input type="email" id="auth-email" class="form-input" placeholder="Email Address" style="margin-bottom: 12px;">
+      <input type="password" id="auth-password" class="form-input" placeholder="Password" style="margin-bottom: 8px;">
+      
+      <div id="forgot-password-box" style="text-align: right; margin-bottom: 15px;">
+        <a href="#" onclick="handleForgotPassword()" style="font-size: 0.8rem; color: var(--saffron); font-weight: 500;">Forgot Password?</a>
+      </div>
+      
+      <p id="auth-error" style="color: red; font-size: 0.9rem; margin-bottom: 15px; display: none;"></p>
+      
+      <button id="auth-action-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="handleAuthAction()">Log In</button>
+      <p id="auth-switch-text" style="text-align: center; font-size: 0.9rem;">
+        New here? <a href="#" onclick="toggleAuthMode()" style="color: var(--saffron); font-weight: bold;">Sign Up</a>
+      </p>
+      <button class="btn btn-outline" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('auth-modal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+
+
 <body>
 
 <!-- ==================== NAVBAR ==================== -->
@@ -1023,10 +1078,18 @@ footer {
         </div>
       </li>
       <li><button class="nav-btn" onclick="navigate('dashboard')">Student Dashboard</button></li>
+      <!-- SECRET ADMIN BUTTON (Hidden by default) -->
       <li><button class="nav-btn" onclick="navigate('about')">About Us</button></li>
       <li><button class="nav-btn" onclick="navigate('contact')">Contact</button></li>
+         <li id="nav-admin-link" style="display: none;"><button class="nav-btn" style="color: #FF5252; font-weight: 800;" onclick="navigate('admin')">👑 Admin</button></li>
+
     </ul>
 
+
+<!-- Login Button -->
+    <button id="nav-auth-btn" onclick="showAuthModal()" class="btn btn-outline btn-sm" style="margin-right: 12px; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--gold); border-color: var(--gold);">🔒 Log In</button>
+
+    
     <!-- Hamburger -->
     <button class="hamburger" id="hamburger" onclick="toggleMobileNav()">
       <span></span><span></span><span></span>
@@ -1093,6 +1156,7 @@ footer {
       <div class="hero-buttons">
         <button class="btn btn-gold" onclick="navigate('study')">📚 Start Learning →</button>
         <button class="btn btn-primary" onclick="navigate('mocktest')">📝 Take a Free Mock Test →</button>
+        
       </div>
     </div>
   </section>
@@ -1652,12 +1716,28 @@ footer {
       </div>
     </div>
 
+    
     <!-- Dashboard Hero -->
     <div class="dashboard-hero" id="dashboard-hero" style="display:none;">
       <h2>🙏 नमस्ते, <span id="display-name">Student</span>!</h2>
+      
+      <!-- NEW: VIP Status Badge -->
+      <div id="student-vip-badge" style="margin-top: 12px; margin-bottom: 16px;"></div>
+      
       <p>Keep learning, keep growing.</p>
       <p class="quote">विद्या ददाति विनयम् — विनयाद् याति पात्रताम्</p>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:var(--cream);margin-top:16px;border:1px solid rgba(255,215,0,0.3);" onclick="changeName()">✏️ Change Name</button>
+    </div>
+
+
+    <!-- DEV SANDBOX (Admin Only - Hidden by default) -->
+    <div id="dev-sandbox" style="display: none; background: #FFF3E0; border: 2px dashed #FF9800; border-radius: var(--radius); padding: 20px; margin-bottom: 24px; text-align: center;">
+      <h3 style="color: #E65100; margin-bottom: 12px; font-size: 1rem;">🛠️ Developer Test Switch</h3>
+      <p style="font-size: 0.8rem; color: var(--text-mid); margin-bottom: 16px;">Instantly change your own account status to test the UI.</p>
+      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn btn-sm" style="background: #9E9E9E; color: white;" onclick="setTestState('free')">Set Free</button>
+        <button class="btn btn-sm" style="background: #4CAF50; color: white;" onclick="setTestState('vip')">Set VIP (Active)</button>
+        <button class="btn btn-sm" style="background: #F44336; color: white;" onclick="setTestState('expired')">Set VIP (Expired)</button>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -1906,6 +1986,44 @@ footer {
   </div>
 </div>
 
+<!-- admin page -->
+<div id="page-admin" class="page">
+  <div class="section">
+    <div class="section-title">
+      <h2 style="color: #b71c1c;">👑 Admin Command Center</h2>
+      <div class="divider" style="background: #b71c1c;"></div>
+      <p>Manage your students and premium access.</p>
+    </div>
+
+    <div style="background: var(--white); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow-lg); border-top: 4px solid #b71c1c;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <h3 style="color: var(--brown);">Registered Students (<span id="admin-user-count">0</span>)</h3>
+        <button class="btn btn-sm" style="background: var(--cream-dark); color: var(--brown);" onclick="loadAdminDashboard()">🔄 Refresh Data</button>
+      </div>
+
+      <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-sm); border: 1px solid var(--cream-dark);">
+        <table class="history-table" style="min-width: 900px;">
+          <thead style="background: #b71c1c; color: white;">
+            <tr>
+              <th style="padding: 14px 16px; text-align: left;">Name</th>
+              <th style="padding: 14px 16px; text-align: left;">Contact</th>
+              <th style="padding: 14px 16px; text-align: left;">Joined</th>
+              <th style="padding: 14px 16px; text-align: left;">Status</th>
+              <th style="padding: 14px 16px; text-align: left;">Validity</th>
+              <th style="padding: 14px 16px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-body">
+            <tr><td colspan="6" style="text-align: center; padding: 24px;">Loading student data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
 <div id="loading-overlay" class="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text">प्रतीक्षताम्... Fetching Questions</div>
@@ -1952,6 +2070,45 @@ footer {
 </footer>
 
 <div id="toast-container"></div>
+
+<div id="admin-edit-modal" class="modal-overlay">
+  <div class="modal-content" style="text-align: left;">
+    <h3 style="color: var(--brown); margin-bottom: 6px;">⚙️ Manage Student</h3>
+    <p id="admin-edit-name" style="font-weight: 700; color: var(--saffron); margin-bottom: 20px; font-size: 0.9rem;"></p>
+
+    <div class="form-group">
+      <label class="form-label">Account Status</label>
+      <select id="admin-edit-status" class="form-input">
+        <option value="false">Free Account</option>
+        <option value="true">👑 VIP / Premium</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-top: 16px;">
+      <label class="form-label">Premium Expiry Date (Validity)</label>
+      <input type="date" id="admin-edit-expiry" class="form-input">
+      <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 6px; line-height: 1.4;">Select a date to end their trial/premium. Leave blank for Lifetime access.</p>
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-top: 28px;">
+      <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="document.getElementById('admin-edit-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" style="flex: 1; justify-content: center; background: #b71c1c;" id="admin-edit-save-btn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="premium-lock-modal" class="modal-overlay">
+  <div class="modal-content" style="text-align: center;">
+    <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
+    <h3 style="color: var(--brown); margin-bottom: 12px; font-size: 1.2rem;">Premium Access Required</h3>
+    <p style="color: var(--text-mid); margin-bottom: 24px; line-height: 1.6;">Your VIP Access has expired or you are on a free plan. Upgrade to our Complete Batch to unlock 7,000+ premium questions, detailed explanations, and live sessions.</p>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <button class="btn btn-outline" onclick="document.getElementById('premium-lock-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-gold" onclick="document.getElementById('premium-lock-modal').style.display='none'; navigate('courses');">View Courses 🎓</button>
+    </div>
+  </div>
+</div>
+
 <div id="submit-modal" class="modal-overlay">
   <div class="modal-content">
     <div style="font-size: 3rem; margin-bottom: 12px;">⚠️</div>
@@ -2023,8 +2180,277 @@ footer {
   </div>
 </div>
 
+
+
+
 <!-- ==================== JAVASCRIPT ==================== -->
 <script>
+
+
+// ==========================================
+// 🚀 FIREBASE CLOUD ENGINE & VIP LOGIC
+// ==========================================
+
+
+
+// 1. Your Secret Keys
+const firebaseConfig = {
+  apiKey: "AIzaSyC9-SkZtquTnt_4F08vkXO71O9u21_r5b8",
+  authDomain: "sanskrit-vartika.firebaseapp.com",
+  projectId: "sanskrit-vartika",
+  storageBucket: "sanskrit-vartika.firebasestorage.app",
+  messagingSenderId: "335310316057",
+  appId: "1:335310316057:web:6949c57ac8923591070088",
+  measurementId: "G-KT34D6Y4B4"
+};
+
+// 2. Turn on the Engine
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 3. Global App Data
+let currentUser = null;
+let isSignUpMode = false;
+
+// 4. The "Master Launch Switch" (Change this date to your actual Launch Day + 7 days)
+const LAUNCH_PROMO_END_DATE = new Date("2026-05-01T00:00:00Z"); 
+
+// 5. THE MASTER ADMIN EMAIL
+const ADMIN_EMAIL = "enquiry.sanskritvartika@gmail.com";
+
+// 6. TESTING SWITCH: Require Email Verification?
+const REQUIRE_EMAIL_VERIFICATION = false; // Change to true before official public launch!
+
+// 7. TRIAL SETTINGS: How many days free?
+const FREE_TRIAL_DAYS = 5; // Change this single number to update the entire website
+
+
+// --- AUTHENTICATION UI LOGIC ---
+function showAuthModal() {
+  document.getElementById('auth-modal').style.display = 'flex';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function toggleAuthMode() {
+  isSignUpMode = !isSignUpMode;
+  const title = document.getElementById('auth-title');
+  const subtitle = document.getElementById('auth-subtitle');
+  const nameInput = document.getElementById('auth-name');
+  const whatsappInput = document.getElementById('auth-whatsapp');
+  const actionBtn = document.getElementById('auth-action-btn');
+  const switchText = document.getElementById('auth-switch-text');
+  const forgotPassBox = document.getElementById('forgot-password-box');
+  
+  if (isSignUpMode) {
+    title.textContent = "Create Account";
+    subtitle.textContent = `Start your ${FREE_TRIAL_DAYS}-Day Free Premium Trial!`;
+    nameInput.style.display = 'block';
+    if(whatsappInput) whatsappInput.style.display = 'block';
+    if(forgotPassBox) forgotPassBox.style.display = 'none';
+    actionBtn.textContent = "Sign Up";
+    switchText.innerHTML = "Already have an account? <a href='#' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Log In</a>";
+  } else {
+    title.textContent = "Welcome Back";
+    subtitle.textContent = "Log in to track your scores.";
+    nameInput.style.display = 'none';
+    if(whatsappInput) whatsappInput.style.display = 'none';
+    if(forgotPassBox) forgotPassBox.style.display = 'block';
+    actionBtn.textContent = "Log In";
+    switchText.innerHTML = "New here? <a href='#' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Sign Up</a>";
+  }
+}
+
+// --- FIXED: FORGOT PASSWORD MUST BE OUTSIDE ---
+async function handleForgotPassword() {
+  const email = document.getElementById('auth-email').value.trim();
+  const errorBox = document.getElementById('auth-error');
+  
+  if (!email) {
+    errorBox.textContent = "Please enter your email address in the box first.";
+    errorBox.style.display = 'block';
+    return;
+  }
+  
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showToast("📧 Password reset link sent! Check your inbox.");
+    document.getElementById('auth-modal').style.display = 'none';
+  } catch (error) {
+    errorBox.textContent = error.message;
+    errorBox.style.display = 'block';
+  }
+}
+
+// --- CLOUD SIGN UP & LOG IN LOGIC ---
+async function handleAuthAction() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const name = document.getElementById('auth-name').value.trim();
+  const whatsapp = document.getElementById('auth-whatsapp').value.trim();
+  const errorBox = document.getElementById('auth-error');
+  
+  if (!email || !password || (isSignUpMode && (!name || !whatsapp))) {
+    errorBox.textContent = "Please fill in all fields.";
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('auth-action-btn');
+  btn.textContent = "Please wait...";
+  btn.disabled = true;
+
+  try {
+    if (isSignUpMode) {
+      // Create Account
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      
+      // We always send the email, but we won't strictly enforce clicking it if testing
+      try { await user.sendEmailVerification(); } catch(e) {}
+      
+      // VIP Trial Logic
+      let expiryDate = null;
+      let isPremium = false;
+      if (new Date() < LAUNCH_PROMO_END_DATE) {
+        isPremium = true;
+        let d = new Date();
+        d.setDate(d.getDate() + FREE_TRIAL_DAYS);
+        expiryDate = d.toISOString();
+      }
+
+      // Create Firestore Profile
+      await db.collection("users").doc(user.uid).set({
+        name: name,
+        email: email,
+        whatsapp: whatsapp,
+        isPremium: isPremium,
+        premiumExpiry: expiryDate,
+        createdAt: new Date().toISOString()
+      });
+      
+      // DEV SWITCH LOGIC: Force logout only if verification is strictly required
+      if (REQUIRE_EMAIL_VERIFICATION) {
+        await auth.signOut(); 
+        showToast("Account created! 📧 Please check your email to verify before logging in.");
+      } else {
+        showToast("Account created! Welcome to the platform.");
+      }
+      
+      document.getElementById('auth-modal').style.display = 'none';
+      
+    } else {
+      // Log In
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      
+      await user.reload(); 
+      
+      // DEV SWITCH LOGIC: Check verification only if required
+      if (REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) {
+        await auth.signOut();
+        errorBox.textContent = "⚠️ Please verify your email before logging in. Check your inbox!";
+        errorBox.style.display = 'block';
+        return;
+      }
+      
+      showToast("Welcome back!");
+      document.getElementById('auth-modal').style.display = 'none';
+    }
+  } catch (error) {
+    errorBox.textContent = error.message;
+    errorBox.style.display = 'block';
+  } finally {
+    btn.textContent = isSignUpMode ? "Sign Up" : "Log In";
+    btn.disabled = false;
+  }
+}
+
+// --- LISTEN FOR LOGIN CHANGES (REAL-TIME SYNC) ---
+let userDocUnsubscribe = null; 
+let isFirebaseReady = false; // NEW: Prevents dashboard glitches
+
+// Helper to instantly force the Nav button to update
+function updateNavUI(user, nameStr) {
+  const navBtn = document.getElementById('nav-auth-btn');
+  if (!navBtn) return;
+  
+  if (user) {
+    const firstName = (nameStr || "Student").split(' ')[0];
+    navBtn.innerHTML = `Hi, ${firstName}`;
+    navBtn.style.background = "rgba(255,215,0,0.15)"; 
+    navBtn.style.color = "var(--gold)";
+    navBtn.style.border = "1px solid var(--gold)";
+    navBtn.onclick = () => { if(confirm("Do you want to log out?")) logoutUser(); };
+  } else {
+    navBtn.innerHTML = `🔒 Log In`;
+    navBtn.style.background = "transparent";
+    navBtn.style.color = "var(--gold)";
+    navBtn.style.border = "1px solid var(--gold)";
+    navBtn.onclick = showAuthModal;
+  }
+}
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    // Check verification safely on page load
+    try { await user.reload(); } catch(e) {}
+    
+    // DEV SWITCH LOGIC: Only kick them out if verification is strictly required
+    if (REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) {
+      await auth.signOut();
+      return; 
+    }
+
+    currentUser = user;
+    updateNavUI(user, "..."); // Instant UI feedback
+    
+    // Start Cloud Sync
+    userDocUnsubscribe = db.collection("users").doc(user.uid).onSnapshot((doc) => {
+      if (doc.exists) {
+        currentUser.dbData = doc.data();
+      } else {
+        currentUser.dbData = { name: "Student", history: [], saved_qs: [], streak: {count:0, lastDate:""} };
+      }
+      
+      updateNavUI(user, currentUser.dbData.name);
+      isFirebaseReady = true; 
+      
+      if (currentPage === 'dashboard') loadDashboard();
+      // --- NEW: UNLOCK ADMIN DASHBOARD ---
+      if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        const adminBtn = document.getElementById('nav-admin-link');
+        if (adminBtn) adminBtn.style.display = 'block'; // Unhide the button!
+      }
+      // FIX: Instantly unlock/lock test cards in real-time!
+      updateTestCardLocks();
+    });
+
+  } else {
+    // User is completely logged out (Guest)
+    currentUser = null;
+    isFirebaseReady = true; 
+    
+    if (userDocUnsubscribe) {
+      userDocUnsubscribe(); 
+      userDocUnsubscribe = null;
+    }
+    
+    updateNavUI(null); // Set to "Log In"
+    if (currentPage === 'dashboard') loadDashboard();
+    
+    // FIX: This must be OUTSIDE the if-statement so it runs for brand new guests!
+    updateTestCardLocks(); 
+  }
+});
+
+function logoutUser() {
+  auth.signOut();
+  showToast("Logged out successfully.");
+  navigate('home', false); 
+}
+// ==========================================
+// 🚀 FIREBASE CLOUD ENGINE & VIP LOGIC ends
 
 // ==========================================
 
@@ -2066,7 +2492,11 @@ function navigate(page, addToHistory = true) {
   }
   
   if (page === 'dashboard') loadDashboard();
-  if (page === 'mocktest') { isFreeMode = false; showCategories(); }
+  if (page === 'mocktest') { 
+    isFreeMode = false; 
+    showCategories(); 
+    updateTestCardLocks(); // <--- NEW: Forces visual locks to render instantly for guests
+  }
   if (page === 'study') {
     if (typeof backToNotesMain === 'function') backToNotesMain();
     if (typeof backToVideosMain === 'function') backToVideosMain();
@@ -2297,8 +2727,61 @@ async function fetchQuestions(cat) {
   }
 }
 
+// --- NEW: THE BOUNCER (Checks VIP Status) ---
+function hasPremiumAccess() {
+  if (!currentUser || !currentUser.dbData) return false; 
+  if (!currentUser.dbData.isPremium) return false; 
+
+  if (currentUser.dbData.premiumExpiry) {
+    const expDate = new Date(currentUser.dbData.premiumExpiry);
+    if (new Date() > expDate) {
+      return false; // Expired
+    }
+  }
+  return true; // Active
+}
+
+// Dynamically adds or removes the lock icon from the Mock Test cards
+function updateTestCardLocks() {
+  const cards = document.querySelectorAll('#test-categories .test-cat-card');
+  const isPremium = hasPremiumAccess(); // Evaluates status instantly
+
+  cards.forEach(card => {
+    if (isPremium) {
+      card.classList.remove('locked-card');
+    } else {
+      card.classList.add('locked-card');
+    }
+  });
+}
+
 // Standard Mock Test Loader (For Paid/Main Portal)
 async function showSets(cat) {
+  // 1. SCENARIO A: No Account (Guest) -> Prompt Sign Up
+  if (!currentUser) {
+    showToast("⚠️ Please create a free account to unlock practice tests!");
+    
+    // Force the modal into Sign-Up mode smoothly
+    isSignUpMode = true; 
+    document.getElementById('auth-title').textContent = "Create Account";
+    document.getElementById('auth-subtitle').textContent = `Start your ${FREE_TRIAL_DAYS}-Day Free Premium Trial!`;
+    document.getElementById('auth-name').style.display = 'block';
+    const wa = document.getElementById('auth-whatsapp'); if(wa) wa.style.display = 'block';
+    const fp = document.getElementById('forgot-password-box'); if(fp) fp.style.display = 'none';
+    document.getElementById('auth-action-btn').textContent = "Sign Up";
+    document.getElementById('auth-switch-text').innerHTML = "Already have an account? <a href='#' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Log In</a>";
+    
+    showAuthModal();
+    return; // STOP the code
+  }
+
+  // 2. SCENARIO B: Logged in, but Free/Expired -> Prompt Upgrade
+  if (!hasPremiumAccess()) {
+    document.getElementById('premium-lock-modal').style.display = 'flex';
+    return; // STOP the code
+  }
+
+  // 3. SCENARIO C: VIP Access Granted -> Load Tests!
   document.getElementById('loading-overlay').style.display = 'flex';
   const success = await fetchQuestions(cat);
   document.getElementById('loading-overlay').style.display = 'none';
@@ -2981,37 +3464,25 @@ async function loadPYQsFromSheet() {
 // ==========================================
 
 // ==========================================
-// === DASHBOARD (localStorage) ===
-function saveName() {
-  const name = document.getElementById('student-name-input').value.trim();
-  if (!name) return;
-  localStorage.setItem('sp_name', name);
-  loadDashboard();
-}
-function changeName() {
-  localStorage.removeItem('sp_name');
-  loadDashboard();
-}
+// ==========================================
+// === DASHBOARD & DATA (Firebase Cloud) ===
+// ==========================================
 
-function saveTestResult(name, correct, total) {
-  const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
+async function saveTestResult(name, correct, total) {
+  if (!currentUser || !currentUser.dbData) {
+    showToast("⚠️ Score not saved! Please log in to track your progress.");
+    return; 
+  }
+  
+  let history = currentUser.dbData.history || [];
+  let streak = currentUser.dbData.streak || { count: 0, lastDate: "" };
   const today = new Date().toLocaleDateString('en-IN');
-  const oldStreak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
+  
+  const oldUnlocked = BADGE_DEFS.filter(b => b.check(history, streak.count)).map(b => b.id);
 
-  // --- 1. Snapshot OLD Badges ---
-  const oldUnlocked = BADGE_DEFS.filter(b => b.check(history, oldStreak.count)).map(b => b.id);
+  history.unshift({ name, correct, total, pct: Math.round((correct/total)*100), date: today });
+  if (history.length > 1000) history.pop();
 
-  // --- Save New History ---
-  history.unshift({
-    name, correct, total,
-    pct: Math.round((correct/total)*100),
-    date: today
-  });
-  if (history.length > 1000) history.pop(); // Upgraded to 1000 so the top badge is possible!
-  localStorage.setItem('sp_history', JSON.stringify(history));
-
-  // --- Save New Streak ---
-  let streak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
   if (streak.lastDate !== today) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -3021,27 +3492,34 @@ function saveTestResult(name, correct, total) {
       streak.count = 1;
     }
     streak.lastDate = today;
-    localStorage.setItem('sp_streak', JSON.stringify(streak));
   }
 
-  // --- 2. Snapshot NEW Badges & Notify ---
-  const newUnlockedBadges = BADGE_DEFS.filter(b => b.check(history, streak.count));
+  currentUser.dbData.history = history;
+  currentUser.dbData.streak = streak;
+  
+  await db.collection("users").doc(currentUser.uid).set({ 
+    history: history, 
+    streak: streak 
+  }, { merge: true });
 
+  const newUnlockedBadges = BADGE_DEFS.filter(b => b.check(history, streak.count));
   setTimeout(() => {
     newUnlockedBadges.forEach(b => {
-      // If they have it now, but didn't have it before -> FIRE TOAST!
-      if (!oldUnlocked.includes(b.id)) {
-        showToast(`🏆 New Badge: ${b.textIcon} ${b.name}!`);
-      }
+      if (!oldUnlocked.includes(b.id)) showToast(`🏆 New Badge: ${b.textIcon} ${b.name}!`);
     });
   }, 800);
 }
-// --- NEW: Bookmark Engine ---
-function toggleSaveQuestion(qIndex) {
-  const q = testState.questions[qIndex];
-  let saved = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
-  const existingIdx = saved.findIndex(sq => sq.q === q.q);
 
+async function toggleSaveQuestion(qIndex) {
+  if (!currentUser || !currentUser.dbData) {
+    showToast("Please Log In to save questions!");
+    showAuthModal();
+    return;
+  }
+  
+  const q = testState.questions[qIndex];
+  let saved = currentUser.dbData.saved_qs || [];
+  const existingIdx = saved.findIndex(sq => sq.q === q.q);
   const btn = document.getElementById('save-btn-' + qIndex);
 
   if (existingIdx >= 0) {
@@ -3049,20 +3527,18 @@ function toggleSaveQuestion(qIndex) {
     showToast("Removed from saved questions");
     if(btn) { btn.innerHTML = '☆ Save'; btn.style.color = 'var(--text-light)'; }
   } else {
-    saved.unshift({
-      q: q.q, options: q.options, answer: q.answer, explanation: q.explanation
-    });
-    showToast("⭐ Question Saved!");
+    saved.unshift({ q: q.q, options: q.options, answer: q.answer, explanation: q.explanation });
+    showToast("⭐ Question Saved to Cloud!");
     if(btn) { btn.innerHTML = '⭐ Saved'; btn.style.color = 'var(--saffron)'; }
   }
-  localStorage.setItem('sp_saved_qs', JSON.stringify(saved));
-  renderSavedQuestions(); // Update dashboard instantly
+  
+  currentUser.dbData.saved_qs = saved;
+  await db.collection("users").doc(currentUser.uid).update({ saved_qs: saved });
+  renderSavedQuestions();
 }
 
 function renderSavedQuestions() {
-  const saved = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
-
-  // Update the Stat Card Counter!
+  const saved = (currentUser && currentUser.dbData && currentUser.dbData.saved_qs) ? currentUser.dbData.saved_qs : [];
   const statEl = document.getElementById('stat-saved-qs');
   if (statEl) statEl.textContent = saved.length;
 
@@ -3070,7 +3546,7 @@ function renderSavedQuestions() {
   if(!container) return;
   
   if (saved.length === 0) {
-    container.innerHTML = '<div style="background:var(--white); border:2px dashed var(--cream-dark); border-radius:var(--radius-sm); padding:24px; text-align:center; color:var(--text-light); font-size:0.85rem;">No saved questions yet. Click the "☆ Save" button during a test review to bookmark difficult questions!</div>';
+    container.innerHTML = '<div style="background:var(--white); border:2px dashed var(--cream-dark); border-radius:var(--radius-sm); padding:24px; text-align:center; color:var(--text-light); font-size:0.85rem;">No saved questions yet.</div>';
     return;
   }
 
@@ -3079,51 +3555,125 @@ function renderSavedQuestions() {
     html += `
       <div style="background:var(--white); padding:16px 20px; border-radius:var(--radius-sm); border-left:4px solid var(--saffron); box-shadow:0 2px 10px rgba(0,0,0,0.05);">
         <div style="font-family:var(--font-skt); font-weight:600; color:var(--brown); margin-bottom:10px; font-size:0.95rem;">${sq.q}</div>
-        <div style="font-size:0.8rem; color:#1B5E20; background:#E8F5E9; padding:6px 10px; border-radius:4px; display:inline-block; margin-bottom:8px;">
-          ✔ Correct: <strong>${sq.options[sq.answer]}</strong>
-        </div>
+        <div style="font-size:0.8rem; color:#1B5E20; background:#E8F5E9; padding:6px 10px; border-radius:4px; display:inline-block; margin-bottom:8px;">✔ Correct: <strong>${sq.options[sq.answer]}</strong></div>
         ${sq.explanation ? `<div style="font-size:0.8rem; color:#7B1FA2; font-style:italic; margin-bottom:12px; line-height:1.5;">💡 ${sq.explanation}</div>` : ''}
-        <div style="text-align:right;">
-          <button onclick="removeSavedQuestion(${i})" style="background:none; border:none; color:#F44336; cursor:pointer; font-size:0.8rem; font-weight:600; opacity:0.8;">🗑️ Remove</button>
-        </div>
+        <div style="text-align:right;"><button onclick="removeSavedQuestion(${i})" style="background:none; border:none; color:#F44336; cursor:pointer; font-size:0.8rem; font-weight:600;">🗑️ Remove</button></div>
       </div>
     `;
   });
   container.innerHTML = html;
 }
 
-function removeSavedQuestion(index) {
-  let saved = JSON.parse(localStorage.getItem('sp_saved_qs') || '[]');
+async function removeSavedQuestion(index) {
+  if (!currentUser || !currentUser.dbData) return;
+  let saved = currentUser.dbData.saved_qs || [];
   saved.splice(index, 1);
-  localStorage.setItem('sp_saved_qs', JSON.stringify(saved));
+  currentUser.dbData.saved_qs = saved;
+  await db.collection("users").doc(currentUser.uid).update({ saved_qs: saved });
   renderSavedQuestions();
-  showToast("Question removed");
+  showToast("Question removed from Cloud");
 }
+
 function openSavedQsModal() {
+  if (!currentUser) { showAuthModal(); return; }
   renderSavedQuestions();
   document.getElementById('saved-qs-modal').style.display = 'flex';
 }
-function loadDashboard() {
-  const name = localStorage.getItem('sp_name');
-  const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
 
-  if (name) {
-    document.getElementById('name-setup-box').style.display = 'none';
-    document.getElementById('dashboard-hero').style.display = 'block';
-    document.getElementById('display-name').textContent = name;
-  } else {
+// ==========================================
+// === DASHBOARD & DATA (Firebase Cloud) ===
+// ==========================================
+function loadDashboard() {
+  // NEW: If Firebase is still booting up, show a loading state!
+  if (!isFirebaseReady) {
     document.getElementById('name-setup-box').style.display = 'block';
+    document.getElementById('name-setup-box').innerHTML = `
+      <div class="spinner" style="margin: 0 auto;"></div>
+      <p style="color:var(--text-light); margin-top:16px;">Connecting securely to Cloud...</p>
+    `;
     document.getElementById('dashboard-hero').style.display = 'none';
+    document.querySelector('.stats-grid').style.display = 'none';
+    document.getElementById('history-container').parentElement.style.display = 'none';
+    const badgesBox = document.getElementById('badges-container');
+    if (badgesBox) badgesBox.parentElement.parentElement.style.display = 'none';
+    return;
   }
 
+  // GUEST VIEW (Not Logged In)
+  if (!currentUser || !currentUser.dbData) {
+    document.getElementById('name-setup-box').style.display = 'block';
+    document.getElementById('name-setup-box').innerHTML = `
+      <h3 style="color:var(--brown); margin-bottom: 12px;">Welcome to your Dashboard!</h3>
+      <p style="color:var(--text-light); margin-bottom:20px;">Please create a free account or log in to track your scores, earn badges, and save difficult questions.</p>
+      <button class="btn btn-primary" onclick="showAuthModal()" style="margin: 0 auto;">🔒 Log In / Sign Up</button>
+    `;
+    document.getElementById('dashboard-hero').style.display = 'none';
+    document.querySelector('.stats-grid').style.display = 'none';
+    document.getElementById('history-container').parentElement.style.display = 'none';
+    const badgesBox = document.getElementById('badges-container');
+    if (badgesBox) badgesBox.parentElement.parentElement.style.display = 'none';
+    return;
+  }
+
+  // STUDENT VIEW (Logged In)
+  document.getElementById('name-setup-box').style.display = 'none';
+  document.getElementById('dashboard-hero').style.display = 'block';
+  document.querySelector('.stats-grid').style.display = 'grid';
+  document.getElementById('history-container').parentElement.style.display = 'block';
+  
+  const badgesBox = document.getElementById('badges-container');
+  if (badgesBox) badgesBox.parentElement.parentElement.style.display = 'block';
+
+  document.getElementById('display-name').textContent = currentUser.dbData.name || "Student";
+
+
+  // --- NEW: UNHIDE DEV SANDBOX FOR ADMIN ---
+  const devSandbox = document.getElementById('dev-sandbox');
+  if (devSandbox) {
+    if (currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      devSandbox.style.display = 'block';
+    } else {
+      devSandbox.style.display = 'none';
+    }
+  }
+
+  // --- NEW: RENDER VIP STATUS ON DASHBOARD ---
+  const vipBadgeContainer = document.getElementById('student-vip-badge');
+  if (vipBadgeContainer) {
+    if (currentUser.dbData.isPremium) {
+      if (currentUser.dbData.premiumExpiry) {
+        const expDate = new Date(currentUser.dbData.premiumExpiry);
+        const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+        
+        if (daysLeft > 0) {
+          vipBadgeContainer.innerHTML = `<span style="background: rgba(255,215,0,0.15); color: var(--gold); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--gold); box-shadow: 0 2px 10px rgba(255,215,0,0.1);">👑 VIP Premium • ${daysLeft} Days Left</span>`;
+        } else {
+          vipBadgeContainer.innerHTML = `<span style="background: rgba(255,82,82,0.15); color: #FF5252; padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid #FF5252;">⚠️ VIP Trial Expired</span>`;
+        }
+      } else {
+        // Lifetime access (no expiry date set)
+        vipBadgeContainer.innerHTML = `<span style="background: rgba(255,215,0,0.15); color: var(--gold); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--gold); box-shadow: 0 2px 10px rgba(255,215,0,0.1);">👑 VIP Premium • Lifetime Access</span>`;
+      }
+    } else {
+      vipBadgeContainer.innerHTML = `<span style="background: rgba(255,255,255,0.1); color: rgba(255,248,231,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255,248,231,0.3);">Free Account</span>`;
+    }
+  }
+  // -------------------------------------------
+
+  const history = currentUser.dbData.history || [];
   document.getElementById('stat-attempted').textContent = history.length;
   document.getElementById('stat-total-qs').textContent = history.reduce((sum, h) => sum + h.total, 0);
+  
   if (history.length > 0) {
     const avg = Math.round(history.reduce((a,h) => a + h.pct, 0) / history.length);
     const best = Math.max(...history.map(h => h.pct));
     document.getElementById('stat-avg').textContent = avg + '%';
     document.getElementById('stat-last').textContent = history[0].date;
     document.getElementById('stat-best').textContent = best + '%';
+  } else {
+    document.getElementById('stat-avg').textContent = '—';
+    document.getElementById('stat-last').textContent = '—';
+    document.getElementById('stat-best').textContent = '—';
   }
 
   const tbody = document.getElementById('history-body');
@@ -3143,12 +3693,10 @@ function loadDashboard() {
       </tr>`).join('');
   }
   renderSavedQuestions();
-  renderGamification(); // <-- We added the call to turn the gamification on!
-} // <-- This is the actual end of loadDashboard()
+  renderGamification();
+}
 
-// --- NEW: Gamification UI Engine (Cleaned & Optimized) ---
-// The Master List of all Achievements
-// --- NEW: Master Badge Dictionary & Share Engine ---
+// Gamification Badges
 const iconStyle = 'color: var(--gold); filter: drop-shadow(0 4px 6px rgba(255,215,0,0.5));';
 const BADGE_DEFS = [
   { id: 'b1', textIcon: '🌱', icon: `<i class="fa-solid fa-seedling" style="${iconStyle}"></i>`, name: 'First Step', desc: 'Took your first test!', check: (h, s) => h.length >= 1 },
@@ -3166,62 +3714,41 @@ const BADGE_DEFS = [
 ];
 
 function shareBadges(icons, count) {
-  if (count === 0) {
-    showToast("You haven't unlocked any badges yet!");
-    return;
-  }
+  if (count === 0) { showToast("You haven't unlocked any badges yet!"); return; }
   const url = window.location.href.split('#')[0];
-  const text = `I've unlocked ${count} achievement badges ${icons} on संस्कृत-वर्तिका! 🏆\n\nStart your UGC NET Sanskrit preparation for free: ${url}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  window.open(`https://wa.me/?text=${encodeURIComponent(`I've unlocked ${count} achievement badges ${icons} on संस्कृत-वर्तिका! 🏆\n\nStart your UGC NET Sanskrit preparation for free: ${url}`)}`, '_blank');
 }
+
 function renderGamification() {
-  const history = JSON.parse(localStorage.getItem('sp_history') || '[]');
-  const streak = JSON.parse(localStorage.getItem('sp_streak') || '{"count": 0, "lastDate": ""}');
-  
-  // Verify if the streak was broken (they missed yesterday)
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const todayStr = today.toLocaleDateString('en-IN');
-  const yesterdayStr = yesterday.toLocaleDateString('en-IN');
+  if (!currentUser || !currentUser.dbData) return;
+  const history = currentUser.dbData.history || [];
+  const streak = currentUser.dbData.streak || { count: 0, lastDate: "" };
   
   let currentStreak = streak.count;
-  if (streak.lastDate !== todayStr && streak.lastDate !== yesterdayStr) {
-    currentStreak = 0; // Streak broken!
-  }
+  const todayStr = new Date().toLocaleDateString('en-IN');
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  if (streak.lastDate !== todayStr && streak.lastDate !== yesterday.toLocaleDateString('en-IN')) currentStreak = 0;
 
-  // Update Streak Number
   const streakEl = document.getElementById('streak-count');
   if (streakEl) streakEl.textContent = currentStreak;
 
-  // Render Badges
   const badgesContainer = document.getElementById('badges-container');
   if (!badgesContainer) return;
 
   let badgesHTML = '';
-  
-  // Dynamic Badge Renderer (Unlocked vs Locked)
-  let unlockedCount = 0;
-  let unlockedIcons = [];
+  let unlockedCount = 0; let unlockedIcons = [];
 
-  // Dynamic Badge Renderer (Unlocked vs Locked)
   BADGE_DEFS.forEach(b => {
-    const isUnlocked = b.check(history, currentStreak);
-    if (isUnlocked) {
-      unlockedCount++;
-      unlockedIcons.push(b.textIcon); // Sends the text emoji to WhatsApp!
+    if (b.check(history, currentStreak)) {
+      unlockedCount++; unlockedIcons.push(b.textIcon);
       badgesHTML += `<div onclick="showToast('${b.textIcon} ${b.name}: ${b.desc}')" title="${b.name}: ${b.desc}" style="font-size:2rem; cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)';">${b.icon}</div>`;
     } else {
-      // Locked state: Greyed out and slightly transparent
       badgesHTML += `<div onclick="showToast('🔒 Locked: ${b.desc}')" title="Locked: ${b.desc}" style="font-size:2rem; cursor:help; filter: grayscale(100%) opacity(0.25); transition:0.2s;">${b.icon}</div>`;
     }
   });
 
-  // Inject badges + The new Share Footer (Fluid Mobile Layout)
   badgesContainer.innerHTML = `
-    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:center; width:100%;">
-      ${badgesHTML}
-    </div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:center; width:100%;">${badgesHTML}</div>
     <div style="width: 100%; display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; margin-top:16px; border-top: 1px solid var(--cream-dark); padding-top: 16px;">
       <span style="font-size:0.85rem; color:var(--text-light); font-weight:700; text-align:center; flex: 1 1 auto;">🏆 ${unlockedCount}/${BADGE_DEFS.length} Unlocked</span>
       <button class="btn btn-sm" style="background:#25D366; color:white; padding: 8px 16px; border-radius: 50px; font-weight:600; flex: 1 1 auto; justify-content:center;" onclick="shareBadges('${unlockedIcons.join('')}', ${unlockedCount})">📱 Share via WhatsApp</button>
@@ -3385,6 +3912,179 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDashboard();
   renderCourses();
 });
+
+// ==========================================
+// === SECRET ADMIN DASHBOARD LOGIC ===
+// ==========================================
+let adminUserList = []; // Saves the downloaded list
+
+async function loadAdminDashboard() {
+  if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    document.getElementById('admin-users-body').innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">⚠️ Access Denied.</td></tr>';
+    return;
+  }
+
+  const tbody = document.getElementById('admin-users-body');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Fetching data from Cloud...</td></tr>';
+
+  try {
+    const snapshot = await db.collection("users").orderBy("createdAt", "desc").get();
+    document.getElementById('admin-user-count').textContent = snapshot.size;
+    
+    if (snapshot.empty) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No students found yet.</td></tr>';
+      return;
+    }
+
+    adminUserList = [];
+    let html = '';
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      data.uid = doc.id; // Save their secret folder ID
+      adminUserList.push(data);
+      
+      const dateJoined = data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-IN') : 'Unknown';
+      
+      // Calculate Status & Validity
+      let vipBadge = '<span style="background: #E0E0E0; color: #757575; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Free</span>';
+      let validityText = '<span style="color: #9E9E9E;">—</span>';
+      
+      if (data.isPremium) {
+        vipBadge = '<span style="background: #FFF3E0; color: #E65100; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">👑 VIP</span>';
+        
+        if (data.premiumExpiry) {
+          const expDate = new Date(data.premiumExpiry);
+          const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+          
+          if (daysLeft > 0) {
+            validityText = `<span style="color: #2E7D32; font-weight: 600;">${daysLeft} days left</span><br><span style="font-size:0.7rem; color:var(--text-light);">${expDate.toLocaleDateString('en-IN')}</span>`;
+          } else {
+            validityText = `<span style="color: #D32F2F; font-weight: 600;">Expired</span>`;
+            vipBadge = '<span style="background: #FFEBEE; color: #D32F2F; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Expired VIP</span>';
+          }
+        } else {
+          validityText = `<span style="color: #1976D2; font-weight: 600;">Lifetime Access</span>`;
+        }
+      }
+
+      let waLink = data.whatsapp ? `<a href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}" target="_blank" style="color: #25D366; font-weight: bold; text-decoration: underline;">${data.whatsapp}</a>` : '<span style="color: #ccc;">N/A</span>';
+
+      html += `
+        <tr style="border-bottom: 1px solid var(--cream-dark);">
+          <td style="padding: 14px 16px; font-weight: 600; color: var(--brown);">${data.name || 'Unknown'}</td>
+          <td style="padding: 14px 16px;"><div style="color: var(--text-mid); margin-bottom:4px;">${data.email}</div>${waLink}</td>
+          <td style="padding: 14px 16px; color: var(--text-light); font-size: 0.85rem;">${dateJoined}</td>
+          <td style="padding: 14px 16px;">${vipBadge}</td>
+          <td style="padding: 14px 16px; font-size: 0.85rem;">${validityText}</td>
+          <td style="padding: 14px 16px; text-align: right;">
+            <button class="btn btn-sm btn-outline" style="padding: 4px 12px;" onclick="openAdminEdit('${data.uid}')">⚙️ Manage</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+
+  } catch (error) {
+    console.error("Admin fetch error:", error);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+  }
+}
+
+// Open the Edit Modal
+function openAdminEdit(uid) {
+  const user = adminUserList.find(u => u.uid === uid);
+  if (!user) return;
+
+  document.getElementById('admin-edit-name').textContent = `${user.name} (${user.email})`;
+  document.getElementById('admin-edit-status').value = user.isPremium ? "true" : "false";
+
+  // Format Date for HTML Input (YYYY-MM-DD)
+  if (user.premiumExpiry) {
+    const d = new Date(user.premiumExpiry);
+    document.getElementById('admin-edit-expiry').value = d.toISOString().split('T')[0];
+  } else {
+    document.getElementById('admin-edit-expiry').value = '';
+  }
+
+  document.getElementById('admin-edit-save-btn').onclick = () => saveAdminEdit(uid);
+  document.getElementById('admin-edit-modal').style.display = 'flex';
+}
+
+// Save Changes to Cloud
+async function saveAdminEdit(uid) {
+  const btn = document.getElementById('admin-edit-save-btn');
+  btn.textContent = "Saving...";
+  btn.disabled = true;
+
+  const isPremium = document.getElementById('admin-edit-status').value === "true";
+  const expiryVal = document.getElementById('admin-edit-expiry').value;
+
+  let expiryDate = null;
+  if (isPremium && expiryVal) {
+    expiryDate = new Date(expiryVal).toISOString(); // Converts back to cloud format
+  }
+
+  try {
+    await db.collection('users').doc(uid).update({
+      isPremium: isPremium,
+      premiumExpiry: expiryDate
+    });
+    showToast("✅ Student account updated successfully!");
+    document.getElementById('admin-edit-modal').style.display = 'none';
+    loadAdminDashboard(); // Refresh the table automatically
+  } catch (error) {
+    alert("Error updating student: " + error.message);
+  } finally {
+    btn.textContent = "Save Changes";
+    btn.disabled = false;
+  }
+}
+
+// ==========================================
+// === DEVELOPER SANDBOX LOGIC ===
+// ==========================================
+async function setTestState(state) {
+  if (!currentUser) return;
+  
+  let isPremium = false;
+  let expiryDate = null;
+  
+  if (state === 'vip') {
+    isPremium = true;
+    let d = new Date();
+    d.setDate(d.getDate() + FREE_TRIAL_DAYS);
+    expiryDate = d.toISOString();
+  } else if (state === 'expired') {
+    isPremium = true;
+    let d = new Date();
+    d.setDate(d.getDate() - 2); // Expired 2 days ago
+    expiryDate = d.toISOString();
+  }
+  
+  try {
+    await db.collection("users").doc(currentUser.uid).update({
+      isPremium: isPremium,
+      premiumExpiry: expiryDate
+    });
+    showToast(`✅ Test State Applied: ${state.toUpperCase()}`);
+    // You don't even need to call loadDashboard() here, because the onSnapshot listener 
+    // will detect this cloud update and instantly refresh the UI for you!
+  } catch(error) {
+    alert("Error changing test state: " + error.message);
+  }
+}
+
+// Ensure the page updates when navigated to
+const originalNavigate = navigate; 
+navigate = function(page, addToHistory = true) {
+  originalNavigate(page, addToHistory); 
+  if (page === 'admin') {
+    loadAdminDashboard(); 
+  }
+};
+
 </script>
 </body>
 </html>
