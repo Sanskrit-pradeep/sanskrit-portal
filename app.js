@@ -688,7 +688,7 @@ if(document.getElementById('back-to-cat-btn')) document.getElementById('back-to-
     return;
   }
 
-  const history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];em('sp_history') || '[]');
+  const history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
 
   Object.keys(categoryData).forEach(setKey => {
     const qCount = categoryData[setKey].length;

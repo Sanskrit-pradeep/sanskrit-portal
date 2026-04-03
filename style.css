@@ -268,8 +268,10 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
   border: 2px solid transparent;
 }
 .quick-card:hover {
-  border-color: var(--saffron); transform: translateY(-4px);
-  box-shadow: var(--shadow-lg); background: linear-gradient(135deg, #FFF3E0, var(--cream));
+  border-color: var(--saffron); 
+  transform: translateY(-6px) scale(1.02); /* Floats up and slightly expands */
+  box-shadow: 0 12px 30px rgba(255, 107, 0, 0.15); /* Soft saffron glow instead of dark shadow */
+  background: linear-gradient(135deg, #FFF8E7, #FFF3E0);
 }
 .svg-icon {
   width: 48px; height: 48px; margin: 0 auto 16px;
