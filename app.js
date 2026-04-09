@@ -320,7 +320,7 @@ function navigate(page, addToHistory = true) {
   if (target) {
     target.classList.add('active');
     currentPage = page;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
     
     // Browser History Integration
     if (addToHistory) {
@@ -693,7 +693,7 @@ async function openFreeSets(mode) {
   
   const setsView = document.getElementById('test-sets-view');
   setsView.style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 
 isFreeMode = true;
 if(document.getElementById('back-to-cat-btn')) document.getElementById('back-to-cat-btn').textContent = '← Back to Free Services';
@@ -753,7 +753,7 @@ if(document.getElementById('back-to-cat-btn')) document.getElementById('back-to-
   
   const setsView = document.getElementById('test-sets-view');
   setsView.style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
   
   const catTitle = catNames[cat] || cat;
   document.getElementById('sets-category-title').textContent = catTitle + " — Practice Sets";
@@ -826,7 +826,7 @@ function startTest(cat, setKey) {
 
   document.getElementById('test-sets-view').style.display = 'none';
   document.getElementById('test-interface').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
   
   document.getElementById('test-title').textContent = testState.testName;
   
@@ -1012,7 +1012,7 @@ function confirmSubmit() {
 
   document.getElementById('test-interface').style.display = 'none';
   document.getElementById('test-results').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 
   const qs = testState.questions;
   let correct = 0, wrong = 0, skipped = 0;
@@ -1095,7 +1095,7 @@ function showCategories() {
     navigate('free'); 
   } else {
     document.getElementById('test-categories').style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }
 }
 
@@ -1165,7 +1165,7 @@ async function showNotesTopic(subjectKey) {
 
   document.getElementById('notes-main-grid').style.display = 'none';
   document.getElementById('notes-topic-view').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
   document.getElementById('notes-topic-title').textContent = (notesSubjectNames[subjectKey] || subjectKey) + " — Study Notes";
 
   const grid = document.getElementById('notes-links-grid');
@@ -1200,7 +1200,7 @@ async function showNotesTopic(subjectKey) {
 function backToNotesMain() {
   document.getElementById('notes-main-grid').style.display = 'grid';
   document.getElementById('notes-topic-view').style.display = 'none';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 }
 
 // ==========================================
@@ -1256,7 +1256,7 @@ async function showVideosTopic(subjectKey) {
 
   document.getElementById('videos-main-grid').style.display = 'none';
   document.getElementById('videos-topic-view').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
   document.getElementById('videos-topic-title').textContent = (notesSubjectNames[subjectKey] || subjectKey) + " — Video Lectures";
 
   const grid = document.getElementById('videos-links-grid');
@@ -1299,7 +1299,7 @@ async function showVideosTopic(subjectKey) {
 function backToVideosMain() {
   document.getElementById('videos-main-grid').style.display = 'grid';
   document.getElementById('videos-topic-view').style.display = 'none';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 }
 // ==========================================
 
