@@ -2117,11 +2117,7 @@ async function setTestState(state) {
   }
 }
 
-// Ensure the page updates when navigated to
-const originalNavigate = navigate; 
-navigate = function(page, addToHistory = true) {
-  originalNavigate(page, addToHistory); 
-};
+
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
