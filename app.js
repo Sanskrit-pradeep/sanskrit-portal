@@ -3,8 +3,6 @@
 // 🚀 FIREBASE CLOUD ENGINE & VIP LOGIC
 // ==========================================
 
-const ANNOUNCEMENT_URL = "https://script.google.com/macros/s/AKfycbzgZL4rEZ7ZCtf_Z9NY_IMkgYeIqsKcbcdBFq1PMmJjYsOajssGkja31AxF61eqTGst/exec";
-
 // 1. Your Secret Keys
 const firebaseConfig = {
   apiKey: "AIzaSyC9-SkZtquTnt_4F08vkXO71O9u21_r5b8",
@@ -297,11 +295,6 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-function logoutUser() {
-  auth.signOut();
-  showToast("Logged out successfully.");
-  navigate('home', false); 
-}
 // ==========================================
 // 🚀 FIREBASE CLOUD ENGINE & VIP LOGIC ends
 
@@ -1401,9 +1394,9 @@ function renderSavedQuestions() {
   saved.forEach((sq, i) => {
     html += `
       <div style="background:var(--white); padding:16px 20px; border-radius:var(--radius-sm); border-left:4px solid var(--saffron); box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-        <div style="font-family:var(--font-skt); font-weight:600; color:var(--brown); margin-bottom:10px; font-size:0.95rem;">${sq.q}</div>
-        <div style="font-size:0.8rem; color:#1B5E20; background:#E8F5E9; padding:6px 10px; border-radius:4px; display:inline-block; margin-bottom:8px;">✔ Correct: <strong>${sq.options[sq.answer]}</strong></div>
-        ${sq.explanation ? `<div style="font-size:0.8rem; color:#7B1FA2; font-style:italic; margin-bottom:12px; line-height:1.5;">💡 ${sq.explanation}</div>` : ''}
+        <div style="font-family:var(--font-skt); font-weight:600; color:var(--brown); margin-bottom:10px; font-size:0.95rem;">${escapeHTML(sq.q)}</div>
+        <div style="font-size:0.8rem; color:#1B5E20; background:#E8F5E9; padding:6px 10px; border-radius:4px; display:inline-block; margin-bottom:8px;">✔ Correct: <strong>${escapeHTML(sq.options[sq.answer])}</strong></div>
+        ${sq.explanation ? `<div style="font-size:0.8rem; color:#7B1FA2; font-style:italic; margin-bottom:12px; line-height:1.5;">💡 ${escapeHTML(sq.explanation)}</div>` : ''}
         <div style="text-align:right;"><button onclick="removeSavedQuestion(${i})" style="background:none; border:none; color:#F44336; cursor:pointer; font-size:0.8rem; font-weight:600;">🗑️ Remove</button></div>
       </div>
     `;
@@ -1546,7 +1539,7 @@ function loadDashboard() {
     document.getElementById('history-table').style.display = 'table';
     tbody.innerHTML = history.map(h => `
       <tr>
-        <td>${h.name}</td>
+        <td>${escapeHTML(h.name)}</td>
         <td>${h.correct}/${h.total}</td>
         <td><span style="color:${h.pct>=60?'#2e7d32':'#b71c1c'};font-weight:700;">${h.pct}%</span></td>
         <td>${h.date}</td>
