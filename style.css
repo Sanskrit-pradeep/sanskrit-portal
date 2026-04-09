@@ -1070,3 +1070,44 @@ footer {
   background-color: var(--cream);
   color: var(--saffron);
 }
+
+/* ==========================================
+   === MOBILE TOP NAVBAR FIX ===
+   ========================================== */
+@media (max-width: 600px) {
+  /* 1. Give the edges more breathing room */
+  .nav-inner {
+    padding: 0 12px;
+  }
+  
+  /* 2. Prevent the Logo text from stacking & scale it nicely */
+  .nav-logo svg {
+    width: 36px; 
+    height: 36px;
+  }
+  .nav-logo-text .site-name {
+    font-size: 1.1rem;
+    white-space: nowrap;
+  }
+  .nav-logo-text .site-tagline {
+    font-size: 0.55rem;
+    white-space: nowrap;
+  }
+  
+  /* 3. Force the "Hi, Name" button to stay on ONE line */
+  #nav-user-name-btn {
+    padding: 4px 10px !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap;
+  }
+  
+  /* 4. Tighten up the Bell Icon spacing so everything fits */
+  .nav-bell-btn {
+    margin-right: 4px !important;
+    padding: 4px !important;
+    font-size: 1.3rem;
+  }
+  #nav-user-menu {
+    margin-right: 0 !important;
+  }
+}
