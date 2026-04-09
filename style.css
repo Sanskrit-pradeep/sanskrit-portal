@@ -927,6 +927,7 @@ footer {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .elegant-notify-card:hover {

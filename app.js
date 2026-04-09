@@ -336,6 +336,36 @@ function navigate(page, addToHistory = true) {
     const activeNavBtn = document.getElementById('bnav-' + page);
     if (activeNavBtn) activeNavBtn.classList.add('active');
   }
+  // Update Mobile Bottom Nav Active State
+    document.querySelectorAll('.mat-item').forEach(el => el.classList.remove('active'));
+    const activeNavBtn = document.getElementById('bnav-' + page);
+    if (activeNavBtn) activeNavBtn.classList.add('active');
+
+    // === NEW: UPDATE DESKTOP TOP NAV ACTIVE STATE ===
+    document.querySelectorAll('.nav-links .nav-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Map the pages to their correct top-bar buttons
+    const topNavMap = {
+      'home': 'Home',
+      'study': 'Study Materials',
+      'mocktest': 'Study Materials', // Mock tests live under the Study Materials dropdown
+      'courses': 'Courses',
+      'free': 'Free Services',
+      'dashboard': 'Student Dashboard',
+      'about': 'About Us',
+      'contact': 'Contact',
+      'admin': '👑 Admin'
+    };
+    
+    const activeText = topNavMap[page];
+    if (activeText) {
+      document.querySelectorAll('.nav-links .nav-btn').forEach(btn => {
+        if (btn.textContent.trim() === activeText) {
+          btn.classList.add('active');
+        }
+      });
+    }
+    // ===============================================
   
   if (page === 'dashboard') loadDashboard();
   if (page === 'mocktest') { 
@@ -406,7 +436,23 @@ window.addEventListener('popstate', function(event) {
     return;
   }
 
-  // 5. If the screen is clear, do normal navigation!
+  // 5. Check if the Notification modal is open
+  const notifyModal = document.getElementById('notification-modal');
+  if (notifyModal && notifyModal.style.display === 'flex') {
+    notifyModal.style.display = 'none';
+    history.pushState({ page: currentPage }, '', '#' + currentPage);
+    return;
+  }
+
+  // 6. Check if the Logout modal is open
+  const logoutModal = document.getElementById('logout-modal');
+  if (logoutModal && logoutModal.style.display === 'flex') {
+    logoutModal.style.display = 'none';
+    history.pushState({ page: currentPage }, '', '#' + currentPage);
+    return;
+  }
+
+  // 7. If the screen is clear, do normal navigation!
   if (event.state && event.state.page) {
     navigate(event.state.page, false);
   } else {
@@ -2281,7 +2327,7 @@ function openNotifications() {
         <h4 class="elegant-notify-title">${escapeHTML(ann.title)}</h4>
         <p class="elegant-notify-msg">${escapeHTML(ann.message)}</p>
         ${linkHtml}
-        <div class="elegant-notify-date">${escapeHTML(ann.date)}</div>
+        <div class="elegant-notify-date">${escapeHTML(timeAgo(ann.date))}</div>
       </div>
     `;
   });
@@ -2327,6 +2373,30 @@ async function refreshStudentProfile() {
 // ==========================================
 // === PREMIUM UI INTERACTIONS ===
 // ==========================================
+
+// Helper: Converts raw database dates into friendly "Time Ago" text
+function timeAgo(dateString) {
+  const date = new Date(dateString);
+  // If the sheet just has plain text like "Monday", just return that
+  if (isNaN(date.getTime())) return dateString; 
+
+  const now = new Date();
+  const secondsPast = Math.floor((now - date) / 1000);
+
+  if (secondsPast < 60) return 'Just now';
+  if (secondsPast < 3600) return Math.floor(secondsPast / 60) + ' mins ago';
+  if (secondsPast < 86400) {
+    const hours = Math.floor(secondsPast / 3600);
+    return hours === 1 ? '1 hour ago' : hours + ' hrs ago';
+  }
+  if (secondsPast < 604800) {
+    const days = Math.floor(secondsPast / 86400);
+    return days === 1 ? 'Yesterday' : days + ' days ago';
+  }
+  
+  // If it's older than 7 days, show a clean date (e.g., "Apr 6, 2026")
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 // 1. Dropdown Toggle Logic
 function toggleUserDropdown() {
