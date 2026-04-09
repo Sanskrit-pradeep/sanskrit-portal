@@ -3,7 +3,7 @@
 // 🚀 FIREBASE CLOUD ENGINE & VIP LOGIC
 // ==========================================
 
-
+const ANNOUNCEMENT_URL = "https://script.google.com/macros/s/AKfycbzgZL4rEZ7ZCtf_Z9NY_IMkgYeIqsKcbcdBFq1PMmJjYsOajssGkja31AxF61eqTGst/exec";
 
 // 1. Your Secret Keys
 const firebaseConfig = {
@@ -26,7 +26,7 @@ let currentUser = null;
 let isSignUpMode = false;
 
 // 4. The "Master Launch Switch" (Change this date to your actual Launch Day + 7 days)
-const LAUNCH_PROMO_END_DATE = new Date("2026-05-01T00:00:00Z"); 
+const LAUNCH_PROMO_END_DATE = new Date("2030-05-01T00:00:00Z"); 
 
 // 5. THE MASTER ADMIN EMAIL
 const ADMIN_EMAIL = "enquiry.sanskritvartika@gmail.com";
@@ -44,6 +44,14 @@ function showAuthModal() {
   document.getElementById('auth-error').style.display = 'none';
 }
 
+// === SECURITY SHIELD ===
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
+  );
+}
+
 function toggleAuthMode() {
   isSignUpMode = !isSignUpMode;
   const title = document.getElementById('auth-title');
@@ -56,7 +64,7 @@ function toggleAuthMode() {
   
   if (isSignUpMode) {
     title.textContent = "Create Account";
-    subtitle.textContent = `Start your ${FREE_TRIAL_DAYS}-Day Free Premium Trial!`;
+    subtitle.textContent = `Start your ${FREE_TRIAL_DAYS}-Day Vartika Param Trial!`;
     nameInput.style.display = 'block';
     if(whatsappInput) whatsappInput.style.display = 'block';
     if(forgotPassBox) forgotPassBox.style.display = 'none';
@@ -217,26 +225,37 @@ auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     updateNavUI(user, "..."); // Instant UI feedback
     
-    // Start Cloud Sync
-    userDocUnsubscribe = db.collection("users").doc(user.uid).onSnapshot((doc) => {
+    // NEW ARCHITECTURE: Fetch once, do not stay connected.
+    db.collection("users").doc(user.uid).get().then((doc) => {
       if (doc.exists) {
         currentUser.dbData = doc.data();
+        
+        // 1. Tell the app Firebase is ready!
+        isFirebaseReady = true;
+
+        // 2. Update the Navbar with their real name
+        updateNavUI(user, currentUser.dbData.name);
+        
+        // 3. Unlock Admin Button if they are the boss
+        if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          const adminBtn = document.getElementById('nav-admin-link');
+          if (adminBtn) adminBtn.style.display = 'block';
+        }
+
+        // 4. Update Lock Icons on Mock Tests
+        updateTestCardLocks();
+
+        // 5. Finally, load the dashboard if they are on it
+        if (currentPage === 'dashboard') loadDashboard(); 
+        
       } else {
-        currentUser.dbData = { name: "Student", history: [], saved_qs: [], streak: {count:0, lastDate:""} };
+        // BUG FIX: Catch the race condition for brand new sign-ups!
+        setTimeout(() => {
+           refreshStudentProfile(); // Try again 1.5 seconds later
+           isFirebaseReady = true; 
+        }, 1500);
       }
-      
-      updateNavUI(user, currentUser.dbData.name);
-      isFirebaseReady = true; 
-      
-      if (currentPage === 'dashboard') loadDashboard();
-      // --- NEW: UNLOCK ADMIN DASHBOARD ---
-      if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        const adminBtn = document.getElementById('nav-admin-link');
-        if (adminBtn) adminBtn.style.display = 'block'; // Unhide the button!
-      }
-      // FIX: Instantly unlock/lock test cards in real-time!
-      updateTestCardLocks();
-    });
+    }).catch(err => console.error("Error fetching profile:", err));
 
   } else {
     // User is completely logged out (Guest)
@@ -461,7 +480,7 @@ async function fetchQuestions(cat) {
   try {
     // --- NEW CODE: The 10-Second Stopwatch ---
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 10000 ms = 10 seconds
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30000 ms = 30 seconds
 
     // We pass the "stopwatch" to the fetch request
     const response = await fetch(targetURL, { signal: controller.signal });
@@ -1286,7 +1305,7 @@ async function saveTestResult(name, correct, total) {
   const oldUnlocked = BADGE_DEFS.filter(b => b.check(history, streak.count)).map(b => b.id);
 
   history.unshift({ name, correct, total, pct: Math.round((correct/total)*100), date: today });
-  if (history.length > 1000) history.pop();
+  if (history.length > 100) history.pop();
 
   if (streak.lastDate !== today) {
     const yesterday = new Date();
@@ -1306,6 +1325,7 @@ async function saveTestResult(name, correct, total) {
     history: history, 
     streak: streak 
   }, { merge: true });
+  loadDashboard(); // Redraw UI locally, 0 Cloud Reads!
 
   const newUnlockedBadges = BADGE_DEFS.filter(b => b.check(history, streak.count));
   setTimeout(() => {
@@ -1339,7 +1359,7 @@ async function toggleSaveQuestion(qIndex) {
   
   currentUser.dbData.saved_qs = saved;
   await db.collection("users").doc(currentUser.uid).update({ saved_qs: saved });
-  renderSavedQuestions();
+  renderSavedQuestions(); // Redraw UI locally, 0 Cloud Reads!
 }
 
 function renderSavedQuestions() {
@@ -1375,7 +1395,7 @@ async function removeSavedQuestion(index) {
   saved.splice(index, 1);
   currentUser.dbData.saved_qs = saved;
   await db.collection("users").doc(currentUser.uid).update({ saved_qs: saved });
-  renderSavedQuestions();
+  renderSavedQuestions(); // Redraw UI locally, 0 Cloud Reads!
   showToast("Question removed from Cloud");
 }
 
@@ -1389,6 +1409,12 @@ function openSavedQsModal() {
 // === DASHBOARD & DATA (Firebase Cloud) ===
 // ==========================================
 function loadDashboard() {
+  if (!currentUser) return;
+  
+  // 1. Load Announcement Banner
+  fetchAndDisplayAnnouncement();
+
+  
   // NEW: If Firebase is still booting up, show a loading state!
   if (!isFirebaseReady) {
     document.getElementById('name-setup-box').style.display = 'block';
@@ -1451,16 +1477,27 @@ function loadDashboard() {
         const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
         
         if (daysLeft > 0) {
-          vipBadgeContainer.innerHTML = `<span style="background: rgba(255,215,0,0.15); color: var(--gold); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--gold); box-shadow: 0 2px 10px rgba(255,215,0,0.1);">👑 VIP Premium • ${daysLeft} Days Left</span>`;
+          vipBadgeContainer.innerHTML = `<span style="background: rgba(255,215,0,0.15); color: var(--gold); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--gold); box-shadow: 0 2px 10px rgba(255,215,0,0.1);">👑 Vartika Param • ${daysLeft} Days Left</span>`;
+          // --- NEW: Trigger Expiry Pop-up (Only once per session) ---
+          if (daysLeft <= 5) {
+            if (!sessionStorage.getItem('expiry_warned')) {
+              setTimeout(() => {
+                document.getElementById('expiry-days-text').textContent = daysLeft;
+                document.getElementById('expiry-modal').style.display = 'flex';
+                sessionStorage.setItem('expiry_warned', 'true');
+              }, 1000); // 1-second delay so it feels natural after dashboard loads
+            }
+          }
+          // ---------------------------------------------------------
         } else {
-          vipBadgeContainer.innerHTML = `<span style="background: rgba(255,82,82,0.15); color: #FF5252; padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid #FF5252;">⚠️ VIP Trial Expired</span>`;
+          vipBadgeContainer.innerHTML = `<span style="background: rgba(255,82,82,0.15); color: #FF5252; padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid #FF5252;">⚠️ Param Access Expired</span>`;
         }
       } else {
         // Lifetime access (no expiry date set)
-        vipBadgeContainer.innerHTML = `<span style="background: rgba(255,215,0,0.15); color: var(--gold); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--gold); box-shadow: 0 2px 10px rgba(255,215,0,0.1);">👑 VIP Premium • Lifetime Access</span>`;
+        vipBadgeContainer.innerHTML = `<span style="background: rgba(255,215,0,0.15); color: var(--gold); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--gold); box-shadow: 0 2px 10px rgba(255,215,0,0.1);">👑 Vartika Param • Lifetime Access</span>`;
       }
     } else {
-      vipBadgeContainer.innerHTML = `<span style="background: rgba(255,255,255,0.1); color: rgba(255,248,231,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255,248,231,0.3);">Free Account</span>`;
+      vipBadgeContainer.innerHTML = `<span style="background: rgba(255,255,255,0.1); color: rgba(255,248,231,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255,248,231,0.3);">Basic Access</span>`;
     }
   }
   // -------------------------------------------
@@ -1722,6 +1759,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // === UPGRADED ADMIN DASHBOARD ENGINE (Search/Sort/Bulk) ===
 // ==========================================
 let adminUserList = []; // Master list from Firebase
+let currentFilteredUsers = [];
 
 // 1. Fetch data from Firebase ONCE
 async function loadAdminDashboard() {
@@ -1793,6 +1831,8 @@ function filterAndRenderAdminTable() {
     }
   });
 
+  currentFilteredUsers = filteredList;
+
   // C. Render to Screen
   document.getElementById('admin-user-count').textContent = filteredList.length;
   const tbody = document.getElementById('admin-users-body');
@@ -1811,7 +1851,7 @@ function filterAndRenderAdminTable() {
       vipBadge = '<span style="background: #E0E0E0; color: #757575; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Free</span>';
       validityText = '<span style="color: #9E9E9E;">—</span>';
     } else if (data.computedStatus === "vip") {
-      vipBadge = '<span style="background: #FFF3E0; color: #E65100; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">👑 VIP</span>';
+      vipBadge = '<span style="background: #FFF3E0; color: #E65100; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">👑 Param</span>';
       if (data.premiumExpiry) {
         const daysLeft = Math.ceil((new Date(data.premiumExpiry) - new Date()) / (1000 * 60 * 60 * 24));
         validityText = `<span style="color: #2E7D32; font-weight: 600;">${daysLeft} days left</span><br><span style="font-size:0.7rem; color:var(--text-light);">${new Date(data.premiumExpiry).toLocaleDateString('en-IN')}</span>`;
@@ -1819,7 +1859,7 @@ function filterAndRenderAdminTable() {
         validityText = `<span style="color: #1976D2; font-weight: 600;">Lifetime Access</span>`;
       }
     } else if (data.computedStatus === "expired") {
-      vipBadge = '<span style="background: #FFEBEE; color: #D32F2F; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Expired VIP</span>';
+      vipBadge = '<span style="background: #FFEBEE; color: #D32F2F; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Expired Param</span>';
       validityText = `<span style="color: #D32F2F; font-weight: 600;">Expired</span>`;
     }
 
@@ -1827,8 +1867,8 @@ function filterAndRenderAdminTable() {
 
     html += `
       <tr style="border-bottom: 1px solid var(--cream-dark); background: var(--white);">
-        <td style="padding: 14px 16px; font-weight: 600; color: var(--brown);">${data.name || 'Unknown'}</td>
-        <td style="padding: 14px 16px; color: var(--text-mid); font-size: 0.85rem;">${data.email}</td>
+        <td style="padding: 14px 16px; font-weight: 600; color: var(--brown);">${escapeHTML(data.name || 'Unknown')}</td>
+        <td style="padding: 14px 16px; color: var(--text-mid); font-size: 0.85rem;">${escapeHTML(data.email)}</td>
         <td style="padding: 14px 16px;">${waLink}</td>
         <td style="padding: 14px 16px; color: var(--text-light); font-size: 0.85rem;">${dateJoined}</td>
         <td style="padding: 14px 16px;">${vipBadge}</td>
@@ -1945,6 +1985,55 @@ async function executeBulkUpdate() {
 }
 
 // ==========================================
+// === EXPORT TO CSV ENGINE ===
+// ==========================================
+function exportToCSV() {
+  if (!currentFilteredUsers || currentFilteredUsers.length === 0) {
+    showToast("⚠️ No students found to export!");
+    return;
+  }
+
+  // 1. Create the CSV Column Headers
+  let csvContent = "Name,Email,WhatsApp,Date Joined,Param Status,Validity Date\n";
+
+  // 2. Loop through the currently filtered students and add their data
+  currentFilteredUsers.forEach(user => {
+    // We remove any accidental commas from names so it doesn't break the CSV columns
+    const name = (user.name || "Unknown").replace(/,/g, ""); 
+    const email = (user.email || "").replace(/,/g, "");
+    const whatsapp = (user.whatsapp || "").replace(/,/g, "");
+    const joined = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : "Unknown";
+    
+    // Format Status cleanly for the spreadsheet
+    let status = "Basic Access";
+    if (user.computedStatus === "vip") status = "Active Param";
+    if (user.computedStatus === "expired") status = "Expired Param";
+
+    const validity = user.premiumExpiry ? new Date(user.premiumExpiry).toLocaleDateString('en-IN') : (status === "Active Param" ? "Lifetime" : "N/A");
+
+    // Add the row to the file
+    csvContent += `${name},${email},${whatsapp},${joined},${status},${validity}\n`;
+  });
+
+  // 3. Force the Browser to Download the File
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  
+  // Name the file dynamically based on today's date
+  const today = new Date().toISOString().split('T')[0];
+  link.setAttribute("href", url);
+  link.setAttribute("download", `Sanskrit_Vartika_Students_${today}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast("✅ CSV Exported Successfully!");
+}
+
+// ==========================================
 // === DEVELOPER SANDBOX LOGIC ===
 // ==========================================
 async function setTestState(state) {
@@ -1982,10 +2071,6 @@ async function setTestState(state) {
 const originalNavigate = navigate; 
 navigate = function(page, addToHistory = true) {
   originalNavigate(page, addToHistory); 
-  if (page === 'admin') {
-    loadAdminDashboard(); 
-    loadAdminReports(); // <--- Triggers the new table to load!
-  }
 };
 
 if ('serviceWorker' in navigator) {
@@ -2080,11 +2165,11 @@ async function loadAdminReports() {
         <tr style="border-bottom: 1px solid var(--cream-dark);">
           <td style="padding: 14px 16px; max-width: 300px;">
             <strong style="color: var(--brown); font-size: 0.85rem;">${data.testName}</strong><br>
-            <span style="font-family: var(--font-skt); font-size: 0.95rem;">${data.questionText}</span>
+            <span style="font-family: var(--font-skt); font-size: 0.95rem;">${escapeHTML(data.questionText)}</span>
           </td>
           <td style="padding: 14px 16px;">
             <span style="background: #FFEBEE; color: #D32F2F; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">${data.reason}</span><br>
-            <span style="font-size: 0.85rem; color: var(--text-mid); display: block; margin-top: 4px;">${data.comment || 'No additional comment'}</span>
+            <span style="font-size: 0.85rem; color: var(--text-mid); display: block; margin-top: 4px;">${escapeHTML(data.comment || 'No additional comment')}</span>
           </td>
           <td style="padding: 14px 16px; font-size: 0.85rem; color: var(--text-light);">${data.reportedBy}</td>
           <td style="padding: 14px 16px; font-size: 0.85rem; color: var(--text-light);">${date}</td>
@@ -2110,5 +2195,80 @@ async function resolveReport(reportId) {
     loadAdminReports(); // Automatically refresh the table
   } catch (error) {
     alert("Error resolving report: " + error.message);
+  }
+}
+
+// ==========================================
+// === GLOBAL ANNOUNCEMENT ENGINE ===
+// ==========================================
+async function fetchAndDisplayAnnouncement() {
+  const banner = document.getElementById('announcement-banner');
+  const textElement = document.getElementById('announcement-text');
+  if (!banner || !textElement) return;
+
+  // FAST LOAD: Check if we already fetched it this session
+  const cachedMsg = sessionStorage.getItem('sv_announcement');
+  if (cachedMsg) {
+    if (cachedMsg !== "none") {
+      textElement.textContent = cachedMsg;
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+    return;
+  }
+
+  // CLOUD FETCH: If not cached, get it from Google Sheets
+  try {
+    const response = await fetch(ANNOUNCEMENT_URL);
+    const data = await response.json();
+    
+    if (data.message && data.message.trim() !== "") {
+      textElement.textContent = data.message;
+      banner.style.display = 'flex';
+      sessionStorage.setItem('sv_announcement', data.message);
+    } else {
+      // If cell A1 is empty, hide banner and cache the empty state
+      banner.style.display = 'none';
+      sessionStorage.setItem('sv_announcement', "none"); 
+    }
+  } catch (error) {
+    console.error("Failed to load announcement:", error);
+  }
+}
+
+// ==========================================
+// === EXPIRY RENEWAL ACTION ===
+// ==========================================
+function claimRenewalDiscount() {
+  document.getElementById('expiry-modal').style.display = 'none';
+  if (!currentUser) return;
+  
+  const studentName = currentUser.dbData.name || "Student";
+  const studentEmail = currentUser.email;
+  
+  // Create a pre-filled WhatsApp message
+  const message = `नमस्ते! I am ${studentName} (${studentEmail}). My Vartika Param access is expiring soon, and I saw the special renewal discount pop-up. I would like to renew my account!`;
+  
+  // EDIT THIS: Put your actual WhatsApp business number here (include country code, no + or spaces)
+  const phone = "918172063129"; 
+  
+  const encodedMessage = encodeURIComponent(message);
+  window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank');
+}
+
+// ==========================================
+// === MANUAL DATA REFRESH (Cost: 1 Read) ===
+// ==========================================
+async function refreshStudentProfile() {
+  if (!currentUser || !currentUser.uid) return;
+  try {
+    const doc = await db.collection("users").doc(currentUser.uid).get();
+    if (doc.exists) {
+      currentUser.dbData = doc.data();
+      loadDashboard(); // Redraw the UI with the fresh data
+    }
+  } catch (error) {
+    console.error("Failed to refresh profile:", error);
   }
 }
