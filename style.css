@@ -264,7 +264,7 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
   background: linear-gradient(135deg, var(--white), var(--cream));
   border-radius: var(--radius); padding: 28px 20px; text-align: center;
   cursor: pointer; box-shadow: var(--shadow); transition: var(--transition);
-  border: 2px solid transparent;
+  border: 3px solid rgba(215, 96, 4, 0.796);
 }
 .quick-card:hover {
   border-color: var(--saffron); 

@@ -454,6 +454,14 @@ window.addEventListener('popstate', function(event) {
   } else {
     navigate('home', false);
   }
+
+  // Check if the Start Test modal is open
+  const startTestModal = document.getElementById('start-test-modal');
+  if (startTestModal && startTestModal.style.display === 'flex') {
+    startTestModal.style.display = 'none';
+    history.pushState({ page: currentPage }, '', '#' + currentPage);
+    return;
+  }
 });
 
 // Feature: Toast Notifications
@@ -494,6 +502,17 @@ function getSkeletonGrid(count = 6, type = 'test') {
           <div class="skeleton skel-button"></div>
         </div>
       `;
+    } else if (type === 'video') {
+      // NEW: Custom skeleton for video thumbnails
+      html += `
+        <div class="skel-card" style="padding: 0; gap: 0; height: 230px;">
+          <div class="skeleton" style="height: 160px; width: 100%; border-radius: var(--radius) var(--radius) 0 0;"></div>
+          <div style="padding: 14px 16px;">
+            <div class="skeleton skel-title" style="margin: 0 0 8px 0; width: 90%;"></div>
+            <div class="skeleton skel-text" style="width: 50%;"></div>
+          </div>
+        </div>
+      `;
     }
   }
   return html;
@@ -513,13 +532,10 @@ function switchTab(tab) {
   if (btn) btn.classList.add('active');
   if (content) content.classList.add('active');
 
-  // NEW: Lazy Load PYQs
+  // NEW: Lazy Load PYQs with Skeletons
   if (tab === 'pyqs' && !window.pyqsLoaded) {
     window.pyqsLoaded = true; // Mark as loaded so it doesn't fetch again
-    document.getElementById('loading-overlay').style.display = 'flex';
-    loadPYQsFromSheet().then(() => {
-      document.getElementById('loading-overlay').style.display = 'none';
-    });
+    loadPYQsFromSheet(); // Skeletons are handled inside this function now
   }
 }
 let allQuestions = {}; // This saves downloaded questions so they only load once
@@ -766,7 +782,7 @@ async function openFreeSets(mode) {
         const desc = mode === 'topic' ? catTitle : "Complete practice set";
 
         grid.innerHTML += `
-          <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="startTest('${cat}', '${setKey}')">
+          <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('${cat}', '${setKey}')">
             ${checkmark}
             <div class="test-cat-icon">🎁</div>
             <h3 style="font-size:1.05rem;">${setKey}</h3>
@@ -823,7 +839,7 @@ if(document.getElementById('back-to-cat-btn')) document.getElementById('back-to-
     const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
 
     const cardHTML = `
-      <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="startTest('${cat}', '${setKey}')">
+      <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('${cat}', '${setKey}')">
         ${checkmark}
         <div class="test-cat-icon">📑</div>
         <h3 style="font-size:1.05rem;">${displayTitle}</h3>
@@ -1056,6 +1072,8 @@ function confirmSubmit() {
   document.getElementById('test-results').style.display = 'block';
   window.scrollTo(0, 0);
 
+  document.getElementById('results-test-name').textContent = testState.testName;
+
   const qs = testState.questions;
   let correct = 0, wrong = 0, skipped = 0;
   qs.forEach((q, i) => {
@@ -1198,12 +1216,7 @@ const notesSubjectNames = {
 };
 
 async function showNotesTopic(subjectKey) {
-  if (Object.keys(allNotes).length === 0) {
-    document.getElementById('loading-overlay').style.display = 'flex';
-    await loadNotesFromSheet();
-    document.getElementById('loading-overlay').style.display = 'none';
-  }
-
+  // 1. Instantly show the page view
   document.getElementById('notes-main-grid').style.display = 'none';
   document.getElementById('notes-topic-view').style.display = 'block';
   window.scrollTo(0, 0);
@@ -1212,7 +1225,17 @@ async function showNotesTopic(subjectKey) {
   const grid = document.getElementById('notes-links-grid');
   const filterSelect = document.getElementById('notes-filter'); 
   
-  grid.innerHTML = ''; // Clear loading text
+  // 2. Inject Skeletons!
+  grid.innerHTML = getSkeletonGrid(6, 'note'); 
+  filterSelect.innerHTML = '<option value="all">Loading...</option>'; 
+
+  // 3. Fetch data + 400ms smooth artificial delay
+  const delayPromise = new Promise(r => setTimeout(r, 400));
+  const fetchPromise = Object.keys(allNotes).length === 0 ? loadNotesFromSheet() : Promise.resolve();
+  await Promise.all([fetchPromise, delayPromise]);
+
+  // 4. Render the real data
+  grid.innerHTML = ''; 
   filterSelect.innerHTML = '<option value="all">All Topics</option>'; 
 
   const topics = allNotes[subjectKey];
@@ -1287,12 +1310,7 @@ function getYouTubeID(url) {
 }
 
 async function showVideosTopic(subjectKey) {
-  if (Object.keys(allVideos).length === 0) {
-    document.getElementById('loading-overlay').style.display = 'flex';
-    await loadVideosFromSheet();
-    document.getElementById('loading-overlay').style.display = 'none';
-  }
-
+  // 1. Instantly show the page view
   document.getElementById('videos-main-grid').style.display = 'none';
   document.getElementById('videos-topic-view').style.display = 'block';
   window.scrollTo(0, 0);
@@ -1301,7 +1319,17 @@ async function showVideosTopic(subjectKey) {
   const grid = document.getElementById('videos-links-grid');
   const filterSelect = document.getElementById('videos-filter'); 
   
-  grid.innerHTML = ''; // Clear loading text
+  // 2. Inject Video Skeletons!
+  grid.innerHTML = getSkeletonGrid(6, 'video'); 
+  filterSelect.innerHTML = '<option value="all">Loading...</option>'; 
+
+  // 3. Fetch data + 400ms smooth artificial delay
+  const delayPromise = new Promise(r => setTimeout(r, 400));
+  const fetchPromise = Object.keys(allVideos).length === 0 ? loadVideosFromSheet() : Promise.resolve();
+  await Promise.all([fetchPromise, delayPromise]);
+
+  // 4. Render the real data
+  grid.innerHTML = ''; 
   filterSelect.innerHTML = '<option value="all">All Topics</option>'; 
 
   const topics = allVideos[subjectKey];
@@ -1348,14 +1376,22 @@ function backToVideosMain() {
 const GOOGLE_SHEET_URL_PYQS = "https://script.google.com/macros/s/AKfycbyLgnaxYpzqWLGaTyf7PoYsHT-DJ-4cbWhn5xNdvZ4ynm8RvQaZzhET4ycW1QTXiLs7/exec";
 
 async function loadPYQsFromSheet() {
+  const grid = document.getElementById('pyqs-grid');
+  // 1. Inject Note Skeletons (they look great for PYQs too!)
+  grid.innerHTML = getSkeletonGrid(6, 'note'); 
+
   try {
-    const response = await fetch(GOOGLE_SHEET_URL_PYQS);
-    const textData = await response.text();
+    // 2. Fetch data + 400ms delay
+    const fetchPromise = fetch(GOOGLE_SHEET_URL_PYQS).then(res => res.text());
+    const delayPromise = new Promise(r => setTimeout(r, 400));
+    
+    const [textData] = await Promise.all([fetchPromise, delayPromise]);
+    
     let data;
     try { data = JSON.parse(textData); } catch (e) { return; }
 
-    const grid = document.getElementById('pyqs-grid');
-    grid.innerHTML = ''; // Clear loading text
+    // 3. Clear skeletons and render real data
+    grid.innerHTML = ''; 
 
     if (!data || data.length === 0) {
       grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:var(--text-light);">PYQs are being updated. Check back soon!</p>';
@@ -1380,7 +1416,7 @@ async function loadPYQsFromSheet() {
   } catch (error) { 
     console.error("Could not load PYQs:", error); 
     showToast("⚠️ Could not load PYQs. Please check your internet connection.");
-    document.getElementById('pyqs-grid').innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#F44336;">Failed to load data. Please refresh the page.</p>';
+    grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#F44336;">Failed to load data. Please refresh the page.</p>';
   }
 }
 
@@ -2422,6 +2458,32 @@ async function refreshStudentProfile() {
   }
 }
 
+// ==========================================
+// === SMART TEST CONFIRMATION ENGINE ===
+// ==========================================
+let pendingTestToStart = null;
+
+function promptStartTest(cat, setKey) {
+  // 1. Save the details of the test they clicked
+  pendingTestToStart = { cat, setKey };
+  
+  // 2. Format the beautiful title (e.g., "ऋग्वेदः - Set 3")
+  const catTitle = catNames ? (catNames[cat] || cat) : cat;
+  const fullName = catTitle + " — " + setKey;
+  
+  // 3. Update the UI and show the modal
+  document.getElementById('start-test-name').textContent = fullName;
+  document.getElementById('start-test-modal').style.display = 'flex';
+}
+
+function executeStartTest() {
+  // 4. Hide the modal and actually launch the test!
+  document.getElementById('start-test-modal').style.display = 'none';
+  if (pendingTestToStart) {
+    startTest(pendingTestToStart.cat, pendingTestToStart.setKey);
+    pendingTestToStart = null; // Clear memory
+  }
+}
 
 // ==========================================
 // === PREMIUM UI INTERACTIONS ===
