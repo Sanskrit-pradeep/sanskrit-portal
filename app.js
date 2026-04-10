@@ -1801,18 +1801,19 @@ const myCourses = [
     link: "https://wa.me/YOUR_PHONE_NUMBER?text=Hello! I want to enroll in the Complete Batch." // EDIT THIS LINK
   },
   {
-    title: "Quick Revision Crash Course",
-    subtitle: "High-yield topics | Exam strategies",
+    title: "UGC NET Sanskrit Mock Test Series",
+    subtitle: "Topic-wise & Full Mock Tests",
     isFree: false,
-    duration: "3 Weeks",
-    level: "Intermediate+",
-    videos: "40+ Videos",
-    desc: "Intensive exam-focused revision. Key points, mnemonics, and mock tests designed to maximize score in minimum time.",
-    price: "₹999",
-    originalPrice: "₹1,999",
+    duration: "6 Months",
+    level: "All Levels",
+    videos: "10,000+ Questions",
+    desc: "Comprehensive test series covering all 10 units. Includes detailed explanations, performance analytics, and all previous year papers.",
+    price: "₹59",
+    originalPrice: "₹89",
     btnText: "Enroll Now →",
-    link: "https://wa.me/YOUR_PHONE_NUMBER?text=Hello! I want to enroll in the Crash Course." // EDIT THIS LINK
+    link: "https://wa.me/YOUR_PHONE_NUMBER?text=Hello! I want to enroll in the Mock Test Series." 
   },
+  
   {
     title: "Free Foundation Course",
     subtitle: "Start your journey | No payment needed",
@@ -1835,7 +1836,25 @@ function renderCourses() {
     // Styling logic for Free vs Paid courses
     const badge = course.isFree ? '<span class="badge badge-free">Free</span>' : '<span class="badge badge-paid">Paid</span>';
     const headerBg = course.isFree ? 'background:linear-gradient(135deg,#1B5E20,#2E7D32);' : '';
-    const priceDisplay = course.isFree ? '<div class="course-price free-price">FREE</div>' : `<div class="course-price">${course.price} <span class="og">${course.originalPrice}</span></div>`;
+    
+    // SMART PRICING ENGINE
+    let priceDisplay = '';
+    if (course.isFree) {
+      priceDisplay = '<div class="course-price free-price">FREE</div>';
+    } else {
+      let discountTag = '';
+      if (course.originalPrice) {
+        // Auto-extract numbers from strings like "₹2,499" to calculate the %
+        let p1 = parseInt(course.price.replace(/[^0-9]/g, ''));
+        let p2 = parseInt(course.originalPrice.replace(/[^0-9]/g, ''));
+        
+        if (p1 && p2 && p2 > p1) {
+          let pct = Math.round(((p2 - p1) / p2) * 100);
+          discountTag = `<span class="discount">${pct}% OFF</span>`;
+        }
+      }
+      priceDisplay = `<div class="course-price"><span class="current">${course.price}</span> <span class="og">${course.originalPrice}</span> ${discountTag}</div>`;
+    }
     
     // Button logic
     let buttonHtml = '';
@@ -2556,3 +2575,51 @@ function contactSupport() {
   document.getElementById("user-dropdown").classList.remove("show");
   navigate('contact'); 
 }
+
+// ==========================================
+// === PWA INSTALLATION ENGINE ===
+// ==========================================
+let deferredPrompt;
+
+// 1. Catch the browser's native install event
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent the default browser mini-infobar from appearing automatically
+  e.preventDefault();
+  // Stash the event so we can trigger it later
+  deferredPrompt = e;
+  
+  // Show our custom "Install App" button in the dropdown
+  const installBtn = document.getElementById('install-app-btn');
+  if (installBtn) {
+    installBtn.style.display = 'block';
+  }
+});
+
+// 2. The function that runs when they click our custom button
+async function installApp() {
+  document.getElementById("user-dropdown").classList.remove("show"); // Close dropdown
+
+  if (deferredPrompt) {
+    // Show the native browser install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to accept or dismiss
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User installation response: ${outcome}`);
+    
+    // We've used the prompt, it cannot be used again
+    deferredPrompt = null;
+    
+    // Hide our custom button since they made a choice
+    const installBtn = document.getElementById('install-app-btn');
+    if (installBtn) installBtn.style.display = 'none';
+  }
+}
+
+// 3. Listen for successful installation to clean up
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  const installBtn = document.getElementById('install-app-btn');
+  if (installBtn) installBtn.style.display = 'none';
+  showToast("✅ App installed successfully!");
+});
