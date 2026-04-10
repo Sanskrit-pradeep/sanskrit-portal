@@ -75,7 +75,7 @@ function toggleAuthMode() {
     if(whatsappInput) whatsappInput.style.display = 'none';
     if(forgotPassBox) forgotPassBox.style.display = 'block';
     actionBtn.textContent = "Log In";
-    switchText.innerHTML = "New here? <a href='#' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Sign Up</a>";
+    switchText.innerHTML = "New here? <a href='#' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Create an account</a>";
   }
 }
 
@@ -1544,8 +1544,7 @@ function openSavedQsModal() {
 // === DASHBOARD & DATA (Firebase Cloud) ===
 // ==========================================
 function loadDashboard() {
-  if (!currentUser) return;
-      
+        
   // NEW: If Firebase is still booting up, show a loading state!
   if (!isFirebaseReady) {
     document.getElementById('name-setup-box').style.display = 'block';
@@ -1807,7 +1806,7 @@ const myCourses = [
     duration: "6 Months",
     level: "All Levels",
     videos: "10,000+ Questions",
-    desc: "Comprehensive test series covering all 10 units. Includes detailed explanations, performance analytics, and all previous year papers.",
+    desc: "At less then ₹10 in a month you get- Comprehensive test series covering all 10 units. Includes detailed explanations, performance analytics, and all previous year papers.",
     price: "₹59",
     originalPrice: "₹89",
     btnText: "Enroll Now →",
