@@ -515,7 +515,20 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
   box-shadow: var(--shadow); height: fit-content; position: sticky; top: calc(var(--nav-h) + 20px);
 }
 .sidebar-title { font-size: 0.85rem; font-weight: 700; color: var(--brown); margin-bottom: 16px; }
-.palette-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+.palette-grid { 
+  display: grid; 
+  grid-template-columns: repeat(5, 1fr); 
+  gap: 6px; 
+  margin-bottom: 16px; 
+  max-height: 250px; /* Locks height to exactly 6 rows (30 questions) */
+  overflow-y: auto;  /* Turns on vertical scrolling */
+  padding-right: 6px; /* Prevents scrollbar from overlapping buttons */
+}
+
+/* Beautiful custom thin scrollbar specifically for the palette */
+.palette-grid::-webkit-scrollbar { width: 5px; }
+.palette-grid::-webkit-scrollbar-track { background: var(--cream-dark); border-radius: 10px; }
+.palette-grid::-webkit-scrollbar-thumb { background: var(--saffron-light); border-radius: 10px; }
 .palette-item {
   width: 36px; height: 36px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
@@ -633,6 +646,29 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
 .history-table tr:last-child td { border-bottom: none; }
 .history-table tr:nth-child(even) td { background: var(--cream); }
 
+/* ===== SUBJECT ANALYTICS ===== */
+.analytics-item { margin-bottom: 18px; }
+.analytics-item:last-child { margin-bottom: 0; }
+.analytics-header { 
+  display: flex; justify-content: space-between; align-items: center; 
+  margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--brown); 
+}
+.analytics-header .pct { 
+  color: var(--saffron); font-weight: 800; font-variant-numeric: tabular-nums; 
+}
+.progress-track { 
+  width: 100%; height: 10px; background: var(--cream-dark); 
+  border-radius: 10px; overflow: hidden; 
+}
+.progress-fill { 
+  height: 100%; border-radius: 10px; 
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+/* Dynamic Performance Colors */
+.fill-red { background: linear-gradient(90deg, #FFCDD2, #F44336); }
+.fill-orange { background: linear-gradient(90deg, #FFE0B2, #FF9800); }
+.fill-green { background: linear-gradient(90deg, #C8E6C9, #4CAF50); }
+
 /* ===== ABOUT PAGE ===== */
 .about-story {
   background: var(--white); border-radius: var(--radius); padding: 40px; box-shadow: var(--shadow);
@@ -656,7 +692,30 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
 .team-card p { color: var(--text-light); font-size: 0.8rem; }
 
 /* ===== CONTACT PAGE ===== */
-.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+/* Desktop: Grid Layout */
+.contact-grid { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 32px 40px; 
+}
+/* Pin "Get In Touch" to top left */
+#contact-get-in-touch { grid-column: 1; grid-row: 1; }
+/* Pin "Follow Us" to bottom left */
+#contact-follow-us { grid-column: 1; grid-row: 2; align-self: start; }
+/* Stretch "Contact Form" across the entire right side */
+#contact-form-block { grid-column: 2; grid-row: 1 / span 2; }
+
+/* Mobile Layout: Flex Column Reordering */
+@media (max-width: 700px) { 
+  .contact-grid { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 32px; 
+  }
+  #contact-get-in-touch { order: 1; } /* First */
+  #contact-form-block { order: 2; }   /* Second */
+  #contact-follow-us { order: 3; }    /* Last */
+}
 @media (max-width: 700px) { .contact-grid { grid-template-columns: 1fr; } }
 .contact-info h3 { color: var(--brown); font-size: 1.2rem; margin-bottom: 20px; }
 .contact-item { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px; }

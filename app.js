@@ -911,10 +911,18 @@ function startTimer() {
 }
 
 function updateTimerDisplay() {
-  const m = Math.floor(testState.timeLeft / 60);
+  // Calculate Hours, Minutes, and Seconds
+  const h = Math.floor(testState.timeLeft / 3600);
+  const m = Math.floor((testState.timeLeft % 3600) / 60);
   const s = testState.timeLeft % 60;
+  
   const el = document.getElementById('test-timer');
-  el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  
+  // Format to HH:MM:SS with leading zeros
+  el.textContent = String(h).padStart(2,'0') + ':' + 
+                   String(m).padStart(2,'0') + ':' + 
+                   String(s).padStart(2,'0');
+                   
   el.classList.toggle('warning', testState.timeLeft < 300);
 }
 
@@ -952,7 +960,7 @@ function renderQuestion() {
   });
 
   document.getElementById('explanation-box').classList.remove('visible');
-  document.getElementById('explanation-box').textContent = '';
+  document.getElementById('explanation-box').innerHTML = '';
 
   const markBtn = document.getElementById('mark-btn');
   const isMarked = !!testState.marked[idx];
@@ -1666,6 +1674,7 @@ function loadDashboard() {
   }
   renderSavedQuestions();
   renderGamification();
+  renderAnalytics(); // NEW: Draw the progress bars
 }
 
 // Gamification Badges
@@ -1728,6 +1737,78 @@ function renderGamification() {
   `;
 }
 
+// ==========================================
+// === SUBJECT-WISE ANALYTICS ENGINE ===
+// ==========================================
+function renderAnalytics() {
+  const container = document.getElementById('analytics-container');
+  if (!container) return;
+
+  const history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
+  
+  if (history.length === 0) {
+    container.innerHTML = '<div style="text-align:center; color:var(--text-light); font-size:0.85rem;">Take a few tests to generate your performance analysis.</div>';
+    return;
+  }
+
+  // The exact names of your test categories
+  const subjects = [
+    { name: 'Full Mock Test', icon: '📋' },
+    { name: 'वैदिकसाहित्यम्', icon: '🔱' },
+    { name: 'व्याकरणम्', icon: '📖' },
+    { name: 'दर्शनम्', icon: '🧘' },
+    { name: 'साहित्यम्', icon: '🪷' },
+    { name: 'अन्यानि', icon: '🌺' }
+  ];
+
+  let html = '';
+  let hasData = false;
+
+  subjects.forEach(sub => {
+    // Find all tests the student took that start with this subject's name
+    const subjectTests = history.filter(h => h.name && h.name.startsWith(sub.name));
+    
+    if (subjectTests.length > 0) {
+      hasData = true;
+      
+      // Calculate the average percentage for this specific subject
+      const totalPct = subjectTests.reduce((sum, h) => sum + h.pct, 0);
+      const avgPct = Math.round(totalPct / subjectTests.length);
+      
+      // Determine the color based on performance
+      let colorClass = 'fill-red'; // Under 50%
+      if (avgPct >= 75) colorClass = 'fill-green'; // 75% or higher
+      else if (avgPct >= 50) colorClass = 'fill-orange'; // 50% to 74%
+
+      html += `
+        <div class="analytics-item">
+          <div class="analytics-header">
+            <span>${sub.icon} <span style="font-family: var(--font-skt);">${sub.name}</span> <span style="font-size:0.75rem; color:var(--text-light); font-weight:400; margin-left:4px;">(${subjectTests.length} tests)</span></span>
+            <span class="pct">${avgPct}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill ${colorClass}" style="width: 0%" data-target="${avgPct}%"></div>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  if (!hasData) {
+    container.innerHTML = '<div style="text-align:center; color:var(--text-light); font-size:0.85rem;">Take a few topic-wise tests to generate your performance analysis.</div>';
+    return;
+  }
+
+  container.innerHTML = html;
+
+  // Premium Animation: Wait 100ms, then slide all the progress bars to their targets!
+  setTimeout(() => {
+    const fills = container.querySelectorAll('.progress-fill');
+    fills.forEach(fill => {
+      fill.style.width = fill.getAttribute('data-target');
+    });
+  }, 100);
+}
 
 // Feature: Dropdown Filter Notes & Videos by Topic
 function filterNotes() {
