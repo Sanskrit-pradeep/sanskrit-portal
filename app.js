@@ -589,15 +589,18 @@ const TEST_DATABASE_URLS = {
   'sahitya': 'https://script.google.com/macros/s/AKfycbx84ZIVDvvNG4yX9nOYBaU_GSKYIjtxflfEke5gbBWIr-Uidwa6Vt4yrSajoE13PGJiPw/exec',
   'full': 'https://script.google.com/macros/s/AKfycbyikVGeVJijVnekPuqULdIQwzLGYFWPEm-bJmGMQviqf1ehUQJp-VfYGZ03SBvnjfHt4A/exec',
   'other': 'https://script.google.com/macros/s/AKfycbwgzQw9hZPBNOznWJUCobVyjN7LYU9-Tf93fZgm4VxWQfKo9Lo9vdYP4HnaqBEgHPU/exec',
-  'paper1': 'PASTE_PAPER_1_SHEET_URL_HERE'
+  'paper1': 'https://script.google.com/macros/s/AKfycbyTOYJSrg6XhQ7bKDSnArkFYr_OyBGo29Wq2k-vIu-5LVFZbeBGXwB1KoslTCqXlfT3eQ/exec',
+  'paper1_topic': 'https://script.google.com/macros/s/AKfycbzsEC8O95qh1r3zW2yHri66U1BbYogCrf-afkUzZcMXbt6M_AtKChdPzOqAc7f5ihjN/exec'
 };
 
 // NEW: The Dedicated Free Databases
 const FREE_DATABASE_URLS = {
   'topic': 'https://script.google.com/macros/s/AKfycbwsDVEqgnkrJNcc8BXg3roqQ7tL5p9trxC-Eu8rtD-hTtfOo64WPTwax7ql6uitgFbXJg/exec',
-  'full': 'https://script.google.com/macros/s/AKfycbyzEJOaAOHBalQESrUx3vDyvnPHijXL_6RfLTxu2iy4BAIUeLzagkE-c7_nHMKrDOf1/exec'
+  'full': 'https://script.google.com/macros/s/AKfycbyzEJOaAOHBalQESrUx3vDyvnPHijXL_6RfLTxu2iy4BAIUeLzagkE-c7_nHMKrDOf1/exec',
+  'paper1_full': 'https://script.google.com/macros/s/AKfycbyK5qR-npXX_Zjmpxu4NguoSHtsDWvZHwpOJEIUsDvlYBnn-HCZNE_LV-cxLVr1TjNwWA/exec',
+  'paper1_topic': 'https://script.google.com/macros/s/AKfycbxLbX-cXVXNjy5tNxF4nJ64Tj7fwBLGs5k1v3K8MR8OlykDvyAjGdj8rhaVEFT4yxw3iQ/exec'
 };
-let freeQuestionsCache = { 'topic': {}, 'full': {} }; // Caches them so they load instantly
+let freeQuestionsCache = { 'topic': {}, 'full': {}, 'paper1_full': {}, 'paper1_topic': {} }; // Caches them so they load instantly
 
 // === MOCK TEST ENGINE ===
 let testState = {
@@ -616,9 +619,12 @@ let testState = {
 const catNames = {
   full: 'Full Mock Test', vedic: 'वैदिकसाहित्यम्', grammar: 'व्याकरणम्',
   darshan: 'दर्शनम्', sahitya: 'साहित्यम्', other: 'अन्यानि',
-  paper1: '1st Paper Mocks',
+  paper1: '1st Paper Full sets', 
+  paper1_topic: '1st Paper Topic-wise',
   // NEW: Distinct names for the free database
-  free_topic: 'Free Topic Test', free_full: 'Free Full Mock'
+  free_topic: 'Free Topic Test', free_full: 'Free Full Mock',
+  free_paper1_full: 'Free 1st Paper Full',      // NEW
+  free_paper1_topic: 'Free 1st Paper Topic'     // NEW
 };
 
 // 2. THE CENTRAL DATA FETCHER (Upgraded with Free Filters & TIMEOUT)
@@ -762,7 +768,7 @@ async function showSets(cat) {
   }
 
   // 2. SCENARIO B: Logged in, but Missing the Required Pass -> Prompt Upgrade
-  const reqPass = (cat === 'paper1') ? 'general' : 'sanskrit';
+  const reqPass = (cat === 'paper1' || cat === 'paper1_topic') ? 'general' : 'sanskrit';
   if (!hasAccess(reqPass)) {
     document.getElementById('premium-lock-modal').style.display = 'flex';
     return; 
@@ -801,7 +807,6 @@ async function showSets(cat) {
 
 // --- UPGRADED SMART ENGINE: The Free Services Loader ---
 async function openFreeSets(mode) {
-  // 1. Immediately switch the view & preserve Free Mode
   navigate('mocktest', true, true); 
   
   document.getElementById('test-categories').style.display = 'none';
@@ -812,40 +817,46 @@ async function openFreeSets(mode) {
   setsView.style.display = 'block';
   window.scrollTo(0, 0);
 
-  // 2. Inject Skeletons
+  // Configuration for the 4 Free Modes
+  const modeConfigs = {
+    'full': { title: "Free Sanskrit Full Mocks", catTitle: catNames['free_full'], descFallback: "Complete 100-question mock test" },
+    'topic': { title: "Free Sanskrit Topic-wise", catTitle: catNames['free_topic'], descFallback: "Subject-specific practice" },
+    'paper1_full': { title: "Free Paper 1 Full Sets", catTitle: catNames['free_paper1_full'], descFallback: "Complete 50-question mock test" },
+    'paper1_topic': { title: "Free Paper 1 Topic-wise", catTitle: catNames['free_paper1_topic'], descFallback: "General Paper 1 practice" }
+  };
+  const config = modeConfigs[mode];
+
+  // Inject Skeletons
   const grid = document.getElementById('sets-grid');
   grid.innerHTML = getSkeletonGrid(6, 'test'); 
-  document.getElementById('sets-category-title').textContent = mode === 'full' ? "Free Full Mock Tests" : "Free Topic-wise Tests";
+  document.getElementById('sets-category-title').textContent = config.title;
   
   const backBtn = document.getElementById('back-to-cat-btn');
   if(backBtn) backBtn.textContent = '← Back to Free Services';
 
-  // 3. Fetch data from the isolated Free Sheets (if not already cached)
+  // Fetch data from the isolated Free Sheets (if not already cached)
   if (Object.keys(freeQuestionsCache[mode]).length === 0) {
     try {
       const response = await fetch(FREE_DATABASE_URLS[mode]);
       const data = await response.json();
       
-      // Organize the incoming data
       data.forEach(row => {
         let setKey = "";
         let displayDesc = "";
 
-        if (mode === 'topic') {
-          // E.g., "Rigveda - Set 1"
-          setKey = `${row.topic} - Set ${row.set}`;
-          displayDesc = row.category; // E.g., वैदिकसाहित्यम्
+        if (mode === 'topic' || mode === 'paper1_topic') {
+          // Uses the Tab Name and Set Column (e.g., "Teaching Aptitude - Set 1")
+          setKey = `${row.category || 'Topic'} - Set ${row.set || '1'}`;
+          displayDesc = row.category || config.descFallback; 
         } else {
-          // E.g., "Free Full Mock - 1"
-          setKey = row.set;
-          displayDesc = "Complete 100-question mock test";
+          setKey = row.set || `Set ${row.Set || '1'}`;
+          displayDesc = config.descFallback;
         }
 
         if (!freeQuestionsCache[mode][setKey]) {
-          freeQuestionsCache[mode][setKey] = { desc: displayDesc, questions: [], catName: mode === 'full' ? 'Free Full' : row.category };
+          freeQuestionsCache[mode][setKey] = { desc: displayDesc, questions: [], catName: config.catTitle };
         }
 
-        // Convert answer letter to index
         let rawAns = String(row.answer || "1").trim().toUpperCase();
         let convertedAns = 0;
         if (rawAns === "A" || rawAns === "1") convertedAns = 0;
@@ -855,22 +866,18 @@ async function openFreeSets(mode) {
         else convertedAns = Math.max(0, Number(rawAns) - 1);
 
         freeQuestionsCache[mode][setKey].questions.push({
-          q: row.question,
-          options: [row.opt0, row.opt1, row.opt2, row.opt3],
-          answer: convertedAns,
-          explanation: row.explanation
+          q: row.question, options: [row.opt0||row.opta, row.opt1||row.optb, row.opt2||row.optc, row.opt3||row.optd],
+          answer: convertedAns, explanation: row.explanation
         });
       });
     } catch (error) {
-      console.error("Failed to load free sets:", error);
       grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:red;">Failed to connect to the free database.</p>';
       return;
     }
   }
 
-  // 4. Render the UI
+  // Render the UI
   grid.innerHTML = '';
-  // Read any old Firebase history + the new Local Storage history
   const cloudHistory = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
   const localHistory = JSON.parse(localStorage.getItem('vartika_free_history') || '[]');
   const history = [...cloudHistory, ...localHistory];
@@ -884,15 +891,10 @@ async function openFreeSets(mode) {
   Object.keys(availableSets).forEach(setKey => {
     const setObj = availableSets[setKey];
     
-    // Make sure we inject these dynamically into the global 'allQuestions' 
-    // so the test engine can find them when the user clicks "Start"
     if (!allQuestions['free_' + mode]) allQuestions['free_' + mode] = {};
     allQuestions['free_' + mode][setKey] = setObj.questions;
     
-    // Check if completed
-    // Check if completed (Using the unique Free names to prevent mixing with Paid tests)
-    const catTitle = mode === 'full' ? catNames['free_full'] : catNames['free_topic'];
-    const exactTestName = catTitle + " - " + setKey;
+    const exactTestName = config.catTitle + " - " + setKey;
     const isCompleted = history.some(h => h.name === exactTestName);
     const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
 
@@ -1573,7 +1575,8 @@ async function loadPYQsFromSheet() {
 // ==========================================
 
 async function saveTestResult(name, correct, total) {
-  const isFreeTest = name.startsWith('Free Topic Test') || name.startsWith('Free Full Mock');
+  // Automatically detects ANY test that has "Free" in its official category name
+  const isFreeTest = name.includes('Free');
   const today = new Date().toLocaleDateString('en-IN');
   const pct = Math.round((correct/total)*100);
   const resultObj = { name, correct, total, pct, date: today };
@@ -2029,7 +2032,6 @@ function filterVideos() {
 }
 
 // === CONTACT FORM ===
-// === CONTACT FORM (WhatsApp Integration) ===
 function submitContactForm() {
   const msg = document.getElementById('cf-msg').value.trim();
   

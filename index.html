@@ -114,7 +114,7 @@
           <a href="#" onclick="navigate('free');return false;">Free Videos</a>
         </div>
       </li>
-      <li><button class="nav-btn" onclick="navigate('dashboard')">Student Dashboard</button></li>
+      <li><button class="nav-btn" onclick="navigate('dashboard')">Dashboard</button></li>
       <!-- SECRET ADMIN BUTTON (Hidden by default) -->
       <li><button class="nav-btn" onclick="navigate('about')">About Us</button></li>
       <li><button class="nav-btn" onclick="navigate('contact')">Contact</button></li>
@@ -544,9 +544,16 @@
       <div class="test-categories-grid">
         <div class="test-cat-card" onclick="showSets('paper1')" data-req="general">
           <div class="test-cat-icon">📊</div>
-          <h3>1st Paper Mocks</h3>
-          <p>General Aptitude & Reasoning</p>
-          <span class="q-count">New Addition</span>
+          <h3>1st Paper Full sets</h3>
+          <p>Complete 50-question mocks</p>
+          <span class="q-count">General Pass</span>
+        </div>
+        
+        <div class="test-cat-card" onclick="showSets('paper1_topic')" data-req="general">
+          <div class="test-cat-icon">📚</div>
+          <h3>1st Paper Topic-wise</h3>
+          <p>Teaching, Research & Aptitude</p>
+          <span class="q-count">General Pass</span>
         </div>
         <div class="test-cat-card" onclick="showSets('full')">
           <div class="test-cat-icon">📋</div>
@@ -691,19 +698,38 @@
       <h3>📝 Free Practice Tests</h3>
       <p style="color:var(--text-mid); margin-bottom: 24px;">Experience our exam interface with these open-access mock tests.</p>
       
-      <div class="test-categories-grid" style="max-width:600px; margin: 0 auto;">
-        <div class="test-cat-card" onclick="openFreeSets('full')">
+      <div class="test-categories-grid" style="max-width:800px; margin: 0 auto;">
+             
+        <div class="test-cat-card" onclick="openFreeSets('paper1_full')" style="position: relative;">
+          <div style="position: absolute; top: 12px; left: 12px;"><span class="badge badge-free">Free</span></div>
+          <div class="test-cat-icon">📊</div>
+          <h3>Paper 1 Full Sets</h3>
+          <p>Complete 50-question sets</p>
+          <span class="q-count">Free Access</span>
+        </div>
+        <div class="test-cat-card" onclick="openFreeSets('paper1_topic')" style="position: relative;">
+          <div style="position: absolute; top: 12px; left: 12px;"><span class="badge badge-free">Free</span></div>
+          <div class="test-cat-icon">📚</div>
+          <h3>Paper 1 Topic-wise</h3>
+          <p>Teaching, Research & Aptitude</p>
+          <span class="q-count">Free Access</span>
+        </div>
+
+         <div class="test-cat-card" onclick="openFreeSets('full')" style="position: relative;">
+          <div style="position: absolute; top: 12px; left: 12px;"><span class="badge badge-free">Free</span></div>
           <div class="test-cat-icon">📋</div>
-          <h3>Free Full Mock Tests</h3>
+          <h3>Sanskrit Full sets</h3>
           <p>Complete 100-question sets</p>
           <span class="q-count">Free Access</span>
         </div>
-        <div class="test-cat-card" onclick="openFreeSets('topic')">
-          <div class="test-cat-icon">📚</div>
-          <h3>Free Topic-wise Tests</h3>
+        <div class="test-cat-card" onclick="openFreeSets('topic')" style="position: relative;">
+          <div style="position: absolute; top: 12px; left: 12px;"><span class="badge badge-free">Free</span></div>
+          <div class="test-cat-icon">🪷</div>
+          <h3>Sanskrit Topic-wise</h3>
           <p>Subject-specific practice</p>
           <span class="q-count">Free Access</span>
         </div>
+
       </div>
     </div>
 
