@@ -414,16 +414,13 @@ function navigate(page, addToHistory = true, keepFreeMode = false) {
 
 // --- NEW: Modal Control Functions ---
 function confirmExitTest() {
-  document.body.classList.remove('test-mode-active'); // Moved INSIDE the function!
-  document.getElementById('exit-modal').style.display = 'none';
-  clearInterval(testState.timerInterval); // Kill the test timer
-  testState.finished = true; // Mark test as finished so it doesn't trigger again
+  // 1. Hide the warning modal
+  const exitModal = document.getElementById('exit-modal');
+  if (exitModal) exitModal.style.display = 'none';
   
-  // Resume the navigation they originally requested
-  if (pendingNavigation) {
-    navigate(pendingNavigation.page, pendingNavigation.addToHistory);
-    pendingNavigation = null;
-  }
+  // 2. Trigger the master exit routing (this safely kills the timer, 
+  // turns off Immersive Mode, and sends the student back to the Hub!)
+  showCategories(); 
 }
 
 function cancelExitTest() {
@@ -860,6 +857,26 @@ async function showSets(cat) {
   const studySubView = document.getElementById('study-sub-view');
   if (studySubView) studySubView.style.display = 'none';
 
+  // --- NEW FIX: DYNAMIC DOM RELOCATION ---
+  // Automatically moves the Test Interface to the active page so it never loads on a blank screen!
+  const testSetsView = document.getElementById('test-sets-view');
+  const testInterface = document.getElementById('test-interface');
+  const testResults = document.getElementById('test-results');
+
+  if (currentPage === 'study') {
+    document.getElementById('page-study').querySelector('.section').appendChild(testSetsView);
+    document.getElementById('page-study').querySelector('.section').appendChild(testInterface);
+    document.getElementById('page-study').querySelector('.section').appendChild(testResults);
+  } else {
+    document.getElementById('page-mocktest').querySelector('.section').appendChild(testSetsView);
+    document.getElementById('page-mocktest').querySelector('.section').appendChild(testInterface);
+    document.getElementById('page-mocktest').querySelector('.section').appendChild(testResults);
+  }
+  // ----------------------------------------
+
+  testSetsView.style.display = 'block';
+  window.scrollTo(0, 0);
+
 
   const setsView = document.getElementById('test-sets-view');
   setsView.style.display = 'block';
@@ -889,8 +906,14 @@ async function openFreeSets(mode) {
   document.getElementById('test-categories').style.display = 'none';
   document.getElementById('test-interface').style.display = 'none';
   document.getElementById('test-results').style.display = 'none';
-  
+
+  // --- NEW FIX: DOM RELOCATION SAFEGUARD ---
   const setsView = document.getElementById('test-sets-view');
+  document.getElementById('page-mocktest').querySelector('.section').appendChild(setsView);
+  document.getElementById('page-mocktest').querySelector('.section').appendChild(document.getElementById('test-interface'));
+  document.getElementById('page-mocktest').querySelector('.section').appendChild(document.getElementById('test-results'));
+  // ----------------------------------------
+  
   setsView.style.display = 'block';
   window.scrollTo(0, 0);
 

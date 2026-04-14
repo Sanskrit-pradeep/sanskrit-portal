@@ -1287,28 +1287,11 @@ footer {
 
 /* MOBILE: Full Screen Immersive Mode */
 @media (max-width: 900px) {
-  /* Hide regular navigation when test is active */
-  body.test-mode-active #navbar,
-  body.test-mode-active .bottom-nav-material {
-    display: none !important;
-  }
-  body.test-mode-active .page,
-  body.test-mode-active .section {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-  }
-
-  /* Fix Header to Top Edge */
-  body.test-mode-active .test-header {
-    position: fixed; top: 0; left: 0; right: 0;
-    z-index: 2000; border-radius: 0; margin: 0;
-    padding: 12px 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  }
   /* Hide regular navigation & footer when test is active */
   body.test-mode-active #navbar,
   body.test-mode-active .bottom-nav-material,
-  body.test-mode-active footer {
+  body.test-mode-active footer,
+  body.test-mode-active .section-title { /* <--- FIX: Hides the stray text! */
     display: none !important;
   }
   body.test-mode-active .page,
@@ -1338,14 +1321,7 @@ footer {
   /* Let body scroll naturally between fixed header and footer */
   body.test-mode-active .test-main {
     height: auto; min-height: 100vh;
-    padding: 68px 16px 90px 16px; /* Reduced top padding to remove the weird gap */
-    box-shadow: none; background: transparent; border-radius: 0;
-  }
-
-  /* Let body scroll naturally between fixed header and footer */
-  body.test-mode-active .test-main {
-    height: auto; min-height: 100vh;
-    padding: 80px 16px 90px 16px; 
+    padding: 68px 16px 90px 16px; /* FIX: Reduced padding removes the gap */
     box-shadow: none; background: transparent; border-radius: 0;
   }
   body.test-mode-active .test-scroll-area {
