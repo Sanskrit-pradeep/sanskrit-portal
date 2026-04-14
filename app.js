@@ -1261,6 +1261,8 @@ function closeMobilePalette() {
 
 // Feature: Test Summary Warning
 function showResults() {
+  if(typeof closeMobilePalette === 'function') closeMobilePalette(); // FIX: Prevent modal trap
+
   let unanswered = 0;
   testState.questions.forEach((_, i) => { if (testState.answers[i] === undefined) unanswered++; });
 
@@ -1276,6 +1278,7 @@ function showResults() {
 function confirmSubmit() {
 // Hide the warning modal!
   document.getElementById('submit-modal').style.display = 'none';
+  document.body.classList.remove('test-mode-active'); // FIX: Stop the Results Page Glitch!
 
   clearInterval(testState.timerInterval);
   testState.finished = true;
