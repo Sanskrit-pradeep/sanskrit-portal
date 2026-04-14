@@ -521,7 +521,8 @@ button { cursor: pointer; font-family: var(--font-sans); border: none; outline: 
   margin-bottom: 16px; 
   max-height: 250px; /* Locks height to exactly 6 rows (30 questions) */
   overflow-y: auto;  /* Turns on vertical scrolling */
-  padding-right: 6px; /* Prevents scrollbar from overlapping buttons */
+  padding: 4px; /* FIX: Gives the active outline room to render without getting cut */
+  padding-right: 8px; /* Prevents scrollbar from overlapping buttons */
 }
 
 /* Beautiful custom thin scrollbar specifically for the palette */
@@ -1496,4 +1497,40 @@ footer {
   background-color: var(--cream);
   font-weight: 700;
   color: var(--brown);
+}
+
+/* ==========================================
+   === IRONCLAD MOBILE ANTI-SCROLL FIX ===
+   ========================================== */
+@media (max-width: 900px) {
+  /* 1. Lock the master browser viewport */
+  html, body {
+    max-width: 100%; /* FIX: Changed 100vw to 100% to respect desktop scrollbars */
+    overflow-x: hidden !important;
+  }
+
+  /* 2. Build an invisible wall around the cards so tables cannot stretch them */
+  .page,
+  .section,
+  .test-main,
+  .results-container,
+  .review-item,
+  #saved-qs-container > div {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden !important; /* Traps the table inside the card */
+  }
+
+  /* 3. Allow the specific text zones holding the tables to scroll smoothly */
+  .question-text,
+  .options-list,
+  .explanation-box,
+  .review-q,
+  .review-ans,
+  .review-exp {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
 }

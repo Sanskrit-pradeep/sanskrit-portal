@@ -1126,18 +1126,29 @@ function startTimer() {
 }
 
 function updateTimerDisplay() {
-  // Calculate Hours, Minutes, and Seconds
+  // 1. Calculate the total original test time (72 seconds per question)
+  const totalTestSeconds = testState.questions.length * 72;
+
+  // 2. Calculate Hours, Minutes, and Seconds
   const h = Math.floor(testState.timeLeft / 3600);
   const m = Math.floor((testState.timeLeft % 3600) / 60);
   const s = testState.timeLeft % 60;
   
   const el = document.getElementById('test-timer');
   
-  // Format to HH:MM:SS with leading zeros
-  el.textContent = String(h).padStart(2,'0') + ':' + 
-                   String(m).padStart(2,'0') + ':' + 
-                   String(s).padStart(2,'0');
+  // 3. SMART FORMATTING: Hide the hour block if the total test is under 1 hour
+  if (totalTestSeconds < 3600) {
+    // Shows MM:SS (e.g., 12:05)
+    el.textContent = String(m).padStart(2,'0') + ':' + 
+                     String(s).padStart(2,'0');
+  } else {
+    // Shows HH:MM:SS (e.g., 01:30:45)
+    el.textContent = String(h).padStart(2,'0') + ':' + 
+                     String(m).padStart(2,'0') + ':' + 
+                     String(s).padStart(2,'0');
+  }
                    
+  // Turns red when less than 5 minutes (300 seconds) remain
   el.classList.toggle('warning', testState.timeLeft < 300);
 }
 
@@ -3042,9 +3053,18 @@ function promptStartTest(cat, setKey) {
   // 2. Format the beautiful title (e.g., "ऋग्वेदः - Set 3")
   const catTitle = catNames ? (catNames[cat] || cat) : cat;
   const fullName = catTitle + " — " + setKey;
+
+  // --- NEW: CALCULATE TIME & QUESTIONS ---
+  const targetQuestions = allQuestions[cat][setKey] || [];
+  const qCount = targetQuestions.length;
+  // Calculate minutes based on your 72 seconds per question rule
+  const totalMins = Math.ceil((qCount * 72) / 60); 
+  // ---------------------------------------
   
   // 3. Update the UI and show the modal
   document.getElementById('start-test-name').textContent = fullName;
+  document.getElementById('start-test-meta').textContent = `${qCount} Questions • ${totalMins} Minutes`;
+  
   document.getElementById('start-test-modal').style.display = 'flex';
 }
 
