@@ -897,6 +897,21 @@ footer {
     padding-right: 16px;
   }
   
+  /* 8. Results Page Mobile Optimizations (Anti-Scroll) */
+  .results-container {
+    padding: 24px 10px !important; /* Removes the massive outer side gaps */
+  }
+  .review-item {
+    padding: 16px 10px !important; /* Removes side padding on the individual cards */
+    margin-left: -4px; /* Pulls cards tight to the edges */
+    margin-right: -4px;
+  }
+  
+  /* Force long compound words or URLs to break instead of stretching the screen */
+  .review-q, .review-ans, .review-exp {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
   /* Hide the ugly default scrollbar */
   #home-courses-grid::-webkit-scrollbar {
     display: none; 

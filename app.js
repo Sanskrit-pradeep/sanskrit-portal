@@ -1384,7 +1384,7 @@ function confirmSubmit() {
 
     reviewHTML += `
       <div class="review-item ${cls}">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
           <div class="review-q">Q${i+1}. ${q.q}</div>
           <div style="display:flex; gap:8px;">
             <button onclick="openReportModal(${i})" style="background:var(--white); border:1px solid #F44336; border-radius:50px; padding:4px 10px; cursor:pointer; font-weight:600; font-size:0.75rem; transition:0.2s; white-space:nowrap; color:#F44336;" title="Report a mistake in this question">🚩 Report</button>
