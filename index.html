@@ -499,16 +499,17 @@
     <div id="test-interface" style="display:none;">
       
       <div class="test-header">
-        <div class="test-header-info">
-          <h3 id="test-title">Mock Test</h3>
-          <p style="color:rgba(255,248,231,0.6);font-size:0.8rem;" id="test-subtitle"></p>
+        <div class="test-header-info" style="flex: 1; min-width: 0; padding-right: 8px;">
+          <h3 id="test-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Mock Test</h3>
+          <p id="test-subtitle" style="color:rgba(255,248,231,0.8); font-size:0.8rem; margin-top:2px;"></p>
         </div>
-        <div style="display:flex;align-items:center;gap:16px;">
-          <div>
-            <div style="font-size:0.7rem;color:rgba(255,248,231,0.5);text-transform:uppercase;letter-spacing:1px;font-weight:700;">Time Left</div>
-            <div class="test-timer" id="test-timer">60:00</div>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink: 0;">
+          <div style="text-align: center; min-width: 58px;">
+            <div style="font-size:0.6rem; color:rgba(255,248,231,0.6); text-transform:uppercase; letter-spacing:1px; font-weight:700; line-height:1;">Time Left</div>
+            <div class="test-timer" id="test-timer" style="font-size: 1.1rem; margin-top: 3px; line-height: 1;">60:00</div>
           </div>
-          <button class="btn btn-sm" style="background:#b71c1c;color:white;" onclick="showResults()">Submit</button>
+          <button class="btn btn-sm btn-outline" style="color:white; border-color:rgba(255,255,255,0.3); padding: 6px 10px; font-size: 0.8rem;" onclick="document.getElementById('exit-modal').style.display='flex'">Exit</button>
+          <button class="btn btn-sm" style="background:#4CAF50; color:white; padding: 6px 10px; font-size: 0.8rem;" onclick="showResults()">Submit</button>
         </div>
       </div>
 

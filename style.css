@@ -1305,8 +1305,42 @@ footer {
     z-index: 2000; border-radius: 0; margin: 0;
     padding: 12px 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
-  body.test-mode-active .test-header h3 { font-size: 0.95rem; }
-  body.test-mode-active .test-header p { display: none; } /* Hide subtitle to save space */
+  /* Hide regular navigation & footer when test is active */
+  body.test-mode-active #navbar,
+  body.test-mode-active .bottom-nav-material,
+  body.test-mode-active footer {
+    display: none !important;
+  }
+  body.test-mode-active .page,
+  body.test-mode-active .section {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Fix Header to Top Edge */
+  body.test-mode-active .test-header {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 2000; border-radius: 0; margin: 0;
+    padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+  
+  /* Show the subtitle and force text truncation if it's too long */
+  body.test-mode-active .test-header h3 { 
+    font-size: 0.9rem; margin-bottom: 2px; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+  }
+  body.test-mode-active .test-header p { 
+    display: block !important; font-size: 0.75rem; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+  } 
+
+  /* Let body scroll naturally between fixed header and footer */
+  body.test-mode-active .test-main {
+    height: auto; min-height: 100vh;
+    padding: 68px 16px 90px 16px; /* Reduced top padding to remove the weird gap */
+    box-shadow: none; background: transparent; border-radius: 0;
+  }
 
   /* Let body scroll naturally between fixed header and footer */
   body.test-mode-active .test-main {
@@ -1362,4 +1396,39 @@ footer {
     transform: translateY(0); 
     visibility: visible; opacity: 1; 
   }
+}
+
+/* ==========================================
+   === DESKTOP PALETTE SAFEGUARD ===
+   ========================================== */
+@media (min-width: 901px) {
+  /* Force the desktop palette to remain a standard, sticky sidebar */
+  .test-sidebar,
+  body.test-mode-active .test-sidebar {
+    position: sticky !important;
+    top: 100px !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: 75vh !important;
+    min-height: 550px !important;
+    overflow-y: auto !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow) !important;
+    margin: 0 !important;
+    background: var(--white) !important;
+  }
+
+  /* Hide the dark mobile overlay on desktop completely */
+  .palette-overlay {
+    display: none !important;
+  }
+
+  /* Give the desktop palette a beautiful custom scrollbar */
+  .test-sidebar::-webkit-scrollbar { width: 6px; }
+  .test-sidebar::-webkit-scrollbar-track { background: var(--cream-dark); border-radius: 10px; }
+  .test-sidebar::-webkit-scrollbar-thumb { background: var(--saffron-light); border-radius: 10px; }
 }
