@@ -1920,12 +1920,12 @@ function loadDashboard() {
     let hasAnyPass = false;
     let minDaysLeft = Infinity;
 
-    // Define the visual style for each pass type
+    // Define the visual style for each pass type (Minimalist Pill with SVG Icons)
     const passDetails = [
-      { id: 'combo', name: 'Combo Mock Pass', icon: '🏆', color: '#9C27B0', bg: '#F3E5F5' },
-      { id: 'batch', name: 'Complete Batch', icon: '🎓', color: '#E65100', bg: '#FFF3E0' },
-      { id: 'sanskrit', name: 'Sanskrit Mocks', icon: '🪷', color: '#1565C0', bg: '#E3F2FD' },
-      { id: 'general', name: '1st Paper Mocks', icon: '📊', color: '#2E7D32', bg: '#E8F5E9' }
+      { id: 'combo', name: 'Combo Pass', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>', color: '#9C27B0', bg: '#F3E5F5' },
+      { id: 'batch', name: 'Complete Batch', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l-10-5-10 5 10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>', color: '#E65100', bg: '#FFF3E0' },
+      { id: 'sanskrit', name: 'Sanskrit Mocks', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>', color: '#1565C0', bg: '#E3F2FD' },
+      { id: 'general', name: 'Paper 1 Mocks', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>', color: '#2E7D32', bg: '#E8F5E9' }
     ];
 
     passDetails.forEach(p => {
@@ -1938,11 +1938,12 @@ function loadDashboard() {
           hasAnyPass = true;
           if (daysLeft < minDaysLeft) minDaysLeft = daysLeft; // Track nearest expiry
           
+          // NEW MINIMALIST PILL DESIGN
           activePassesHTML += `
-            <div style="background: ${p.bg}; border: 1px solid ${p.color}; border-radius: var(--radius-sm); padding: 12px 16px; display: flex; flex-direction: column; align-items: center; min-width: 140px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-              <span style="font-size: 1.5rem; margin-bottom: 6px;">${p.icon}</span>
-              <span style="color: ${p.color}; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; text-align: center;">${p.name}</span>
-              <span style="color: var(--brown); font-size: 0.75rem; margin-top: 6px; font-weight: 600;">⏳ ${daysLeft} Days Left</span>
+            <div style="display: inline-flex; align-items: center; background: ${p.bg}; border: 1px solid ${p.color}; border-radius: 50px; padding: 6px 14px; margin: 4px; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+              <span style="color: ${p.color}; display: flex; align-items: center;">${p.icon}</span>
+              <span style="color: ${p.color}; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">${p.name}</span>
+              <span style="color: var(--brown); font-size: 0.75rem; font-weight: 700; border-left: 1px solid rgba(0,0,0,0.1); padding-left: 8px;">${daysLeft}d left</span>
             </div>
           `;
         }
