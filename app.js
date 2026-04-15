@@ -1101,7 +1101,7 @@ function startTest(cat, setKey) {
   document.getElementById('test-interface').style.display = 'block';
   window.scrollTo(0, 0);
   
-  document.getElementById('test-title').textContent = testState.testName;
+  document.getElementById('test-title').textContent = displayTitle;
   
   // Calculates the minutes to show on the subtitle (e.g., 10 questions = 12 Minutes)
   const displayMinutes = Math.ceil(totalSeconds / 60);
@@ -2088,8 +2088,10 @@ function renderAnalytics() {
     return;
   }
 
-  // The exact names of your test categories
+  // The exact names of your test categories to track
   const subjects = [
+    { name: '1st Paper Full sets', icon: '📊' }, // NEW
+    { name: '1st Paper Topic-wise', icon: '📚' }, // NEW
     { name: 'Full Mock Test', icon: '📋' },
     { name: 'वैदिकसाहित्यम्', icon: '🔱' },
     { name: 'व्याकरणम्', icon: '📖' },
