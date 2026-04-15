@@ -1923,7 +1923,7 @@ function loadDashboard() {
     // Define the visual style for each pass type (Minimalist Pill with SVG Icons)
     const passDetails = [
       { id: 'combo', name: 'Combo Pass', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>', color: '#9C27B0', bg: '#F3E5F5' },
-      { id: 'batch', name: 'Complete Batch', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l-10-5-10 5 10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>', color: '#E65100', bg: '#FFF3E0' },
+      { id: 'batch', name: 'Complete Batch', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>', color: '#E65100', bg: '#FFF3E0' },
       { id: 'sanskrit', name: 'Sanskrit Mocks', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>', color: '#1565C0', bg: '#E3F2FD' },
       { id: 'general', name: 'Paper 1 Mocks', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>', color: '#2E7D32', bg: '#E8F5E9' }
     ];
@@ -2306,6 +2306,28 @@ const myCourses = [
   }
 ];
 
+// --- NEW: SMART PURCHASE ROUTER ---
+function purchaseCourse(index) {
+  const course = myCourses[index];
+  if (!course) return;
+
+  // Extract the original message from your myCourses array
+  let baseMsg = `Hello! I want to buy the ${course.title}.`;
+  if (course.link.includes('text=')) {
+    baseMsg = decodeURIComponent(course.link.split('text=')[1]);
+  }
+
+  // If the user is logged in, attach their profile details!
+  if (currentUser && currentUser.dbData) {
+    const name = currentUser.dbData.name || "Student";
+    const email = currentUser.email || "";
+    baseMsg += `\n\nMy Details:\nName: ${name}\nEmail: ${email}`;
+  }
+
+  const phone = "918172063129";
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(baseMsg)}`, '_blank');
+}
+
 function renderCourses() {
   let htmlOutput = '';
   
@@ -2338,7 +2360,7 @@ function renderCourses() {
       buttonHtml = `
         <div style="display: flex; gap: 10px; margin-top: auto;">
           <button class="btn btn-outline" style="flex: 1; justify-content: center; padding: 10px 12px;" onclick="showCourseDetails(${index})">Details</button>
-          <a href="${course.link}" target="_blank" class="btn btn-primary" style="flex: 1.5; justify-content: center; padding: 10px 12px; text-align: center;">${course.btnText}</a>
+          <button class="btn btn-primary" style="flex: 1.5; justify-content: center; padding: 10px 12px; text-align: center;" onclick="purchaseCourse(${index})">${course.btnText}</button>
         </div>
       `;
     }
@@ -2417,8 +2439,13 @@ function showCourseDetails(index) {
   }
   document.getElementById('cd-price-box').innerHTML = priceDisplay;
 
-  // 5. Connect the Buy Button
-  document.getElementById('cd-buy-btn').href = course.link;
+  // 5. Connect the Smart Buy Button
+  const buyBtn = document.getElementById('cd-buy-btn');
+  buyBtn.href = "#"; // Prevent page jump
+  buyBtn.onclick = function(e) {
+    e.preventDefault();
+    purchaseCourse(index);
+  };
 
   // 6. Show the Modal
   document.getElementById('course-details-modal').style.display = 'flex';
