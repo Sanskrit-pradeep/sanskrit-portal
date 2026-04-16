@@ -1338,6 +1338,9 @@ function confirmSubmit() {
   document.getElementById('submit-modal').style.display = 'none';
   document.body.classList.remove('test-mode-active'); // FIX: Stop the Results Page Glitch!
 
+  // NEW: Save any mistakes to the local vault before we calculate the final score!
+  if (typeof saveMistakesLocally === 'function') saveMistakesLocally();
+
   clearInterval(testState.timerInterval);
   testState.finished = true;
 
@@ -2223,6 +2226,8 @@ function loadDashboard() {
   renderSavedQuestions();
   renderGamification();
   renderAnalytics(); // NEW: Draw the progress bars
+
+  if (typeof updateVaultBadge === 'function') updateVaultBadge();
 }
 
 // Gamification Badges
@@ -3453,4 +3458,130 @@ window.addEventListener('appinstalled', () => {
 function openHistoryModal() {
   if (!currentUser) { showAuthModal(); return; }
   document.getElementById('history-modal').style.display = 'flex';
+}
+
+// ==========================================
+// === THE MISTAKE VAULT ENGINE ===
+// ==========================================
+
+let currentVault = [];
+let currentFlashcardIndex = 0;
+
+// 1. Update the Dashboard Badge Count
+function updateVaultBadge() {
+  if (!currentUser) return;
+  const vaultKey = `mistake_vault_${currentUser.email}`;
+  const vault = JSON.parse(localStorage.getItem(vaultKey)) || [];
+  const badge = document.getElementById('vault-count-badge');
+  if (badge) badge.textContent = `${vault.length} Saved Mistakes`;
+}
+
+// 2. Save wrong answers silently during test submission
+function saveMistakesLocally() {
+  if (!currentUser || !testState || !testState.questions) return;
+  
+  const vaultKey = `mistake_vault_${currentUser.email}`;
+  let vault = JSON.parse(localStorage.getItem(vaultKey)) || [];
+
+  testState.questions.forEach((q, index) => {
+    let userAns = testState.answers[index];
+    // If they answered it AND got it wrong
+    if (userAns !== undefined && userAns !== q.answer) {
+      // Prevent duplicates: Check if this question is already in the vault
+      if (!vault.find(v => v.q === q.q)) {
+        vault.push(q);
+      }
+    }
+  });
+
+  localStorage.setItem(vaultKey, JSON.stringify(vault));
+}
+
+// 3. Open the UI
+function openMistakeVault() {
+  if (!currentUser) return;
+  const vaultKey = `mistake_vault_${currentUser.email}`;
+  currentVault = JSON.parse(localStorage.getItem(vaultKey)) || [];
+  
+  if (currentVault.length === 0) {
+    showToast("🎉 Your vault is empty! You have no saved mistakes.");
+    return;
+  }
+
+  // Shuffle the mistakes so they aren't in the same predictable order!
+  currentVault = shuffleArray([...currentVault]);
+  currentFlashcardIndex = 0;
+
+  // Hide dashboard, show vault
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('mistake-vault-view').style.display = 'block';
+  window.scrollTo(0, 0);
+
+  renderFlashcard();
+}
+
+// 4. Render the current flashcard
+function renderFlashcard() {
+  const qData = currentVault[currentFlashcardIndex];
+  document.getElementById('flashcard-counter').textContent = `${currentFlashcardIndex + 1} / ${currentVault.length}`;
+  document.getElementById('flashcard-q').innerHTML = qData.q;
+  
+  // Reset visibility
+  document.getElementById('btn-reveal-ans').style.display = 'block';
+  document.getElementById('flashcard-ans-box').style.display = 'none';
+  document.getElementById('flashcard-actions').style.display = 'none';
+}
+
+// 5. Reveal Answer
+function revealFlashcardAnswer() {
+  const qData = currentVault[currentFlashcardIndex];
+  document.getElementById('btn-reveal-ans').style.display = 'none';
+  
+  // Show correct text and explanation
+  document.getElementById('flashcard-correct-text').innerHTML = qData.options[qData.answer];
+  
+  const expBox = document.getElementById('flashcard-exp');
+  if (qData.explanation && qData.explanation.trim() !== "") {
+    expBox.innerHTML = "<strong>Explanation:</strong><br>" + qData.explanation;
+    expBox.style.display = 'block';
+  } else {
+    expBox.style.display = 'none';
+  }
+
+  document.getElementById('flashcard-ans-box').style.display = 'block';
+  document.getElementById('flashcard-actions').style.display = 'flex';
+}
+
+// 6. Master (Remove) a mistake
+function masterMistake() {
+  const vaultKey = `mistake_vault_${currentUser.email}`;
+  currentVault.splice(currentFlashcardIndex, 1); // Remove from active array
+  localStorage.setItem(vaultKey, JSON.stringify(currentVault)); // Save new array to browser
+  
+  showToast("✅ Great job! Removed from your vault.");
+  
+  if (currentVault.length === 0) {
+    closeMistakeVault();
+    showToast("🎉 Vault cleared! You mastered all your mistakes.");
+  } else {
+    // Keep index the same, since the array shrunk, rendering will show the "next" item natively
+    if (currentFlashcardIndex >= currentVault.length) currentFlashcardIndex = 0;
+    renderFlashcard();
+  }
+}
+
+// 7. Skip to Next
+function nextFlashcard() {
+  currentFlashcardIndex++;
+  if (currentFlashcardIndex >= currentVault.length) {
+    currentFlashcardIndex = 0; // Loop back to the start
+    showToast("🔄 Vault looped! Keep studying.");
+  }
+  renderFlashcard();
+}
+
+// 8. Close Vault
+function closeMistakeVault() {
+  document.getElementById('mistake-vault-view').style.display = 'none';
+  navigate('dashboard');
 }
