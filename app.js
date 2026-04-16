@@ -420,6 +420,7 @@ function navigate(page, addToHistory = true, keepFreeMode = false) {
   if (page === 'mocktest') {
     if (!isFreeMode) showCategories();
     updateTestCardLocks();
+    if (typeof updateAIBoosterLimitsUI === 'function') updateAIBoosterLimitsUI(); // <-- NEW ALARM
   }
   // CLEANUP LOGIC: Reset sub-views when navigating away
   if (page === 'study' && typeof closePremiumSubView === 'function') closePremiumSubView();
@@ -739,12 +740,11 @@ function hasAccess(requiredPass) {
 
 // Dynamically adds or removes the lock icon based on the specific card's requirement
 function updateTestCardLocks() {
-  const cards = document.querySelectorAll('#test-categories .test-cat-card');
+  // UPGRADED: Now targets ANY card with a data-req attribute (including AI cards)
+  const cards = document.querySelectorAll('.test-cat-card[data-req]');
   
   cards.forEach(card => {
-    // Check if the HTML tag specifically asks for 'general', otherwise assume 'sanskrit'
-    const reqPass = card.getAttribute('data-req') || 'sanskrit';
-    
+    const reqPass = card.getAttribute('data-req');
     if (hasAccess(reqPass)) {
       card.classList.remove('locked-card');
     } else {
@@ -752,7 +752,6 @@ function updateTestCardLocks() {
     }
   });
 }
-
 // ==========================================
 // === PREMIUM STUDY HUB ENGINE ===
 // ==========================================
@@ -1466,6 +1465,179 @@ function showCategories() {
     window.scrollTo(0, 0);
   }
 }
+
+
+// ==========================================
+// === THE AI BOOSTER ENGINE ===
+// ==========================================
+
+// Helper: Basic Array Shuffler
+function shuffleArray(array) {
+  let curId = array.length;
+  while (0 !== curId) {
+    let randId = Math.floor(Math.random() * curId);
+    curId -= 1;
+    let tmp = array[curId];
+    array[curId] = array[randId];
+    array[randId] = tmp;
+  }
+  return array;
+}
+
+// 1. UI Sync for Daily Limits (0 Firebase Reads)
+function updateAIBoosterLimitsUI() {
+  const today = new Date().toLocaleDateString('en-IN');
+  ['paper1', 'sanskrit'].forEach(type => {
+    let limitData = JSON.parse(localStorage.getItem(`ai_booster_limit_${type}`) || `{"date": "${today}", "count": 2}`);
+    if (limitData.date !== today) {
+      limitData = { date: today, count: 2 }; // Reset if it's a new day
+      localStorage.setItem(`ai_booster_limit_${type}`, JSON.stringify(limitData));
+    }
+    const limitEl = document.getElementById(`ai-limit-${type}`);
+    if (limitEl) limitEl.textContent = `Remaining Today: ${limitData.count}/2`;
+  });
+}
+
+// 2. The Weakness Analyzer
+function getWeakTopics(paperType) {
+  if (!currentUser || !currentUser.dbData || !currentUser.dbData.history) return [];
+  const history = currentUser.dbData.history;
+  let topicStats = {}; 
+
+  // Create a reverse lookup dictionary to find the system key from the display name
+  const reverseCatNames = {};
+  Object.keys(catNames).forEach(k => reverseCatNames[catNames[k]] = k);
+
+  history.forEach(h => {
+    // Skip AI boosters, full mocks, and free tests
+    if (h.name.includes("AI Booster") || h.name.includes("Full Mock") || h.name.includes("Free")) return;
+
+    let parts = h.name.split(" - ");
+    if (parts.length < 2) return;
+
+    let catTitle = parts[0].trim();
+    let setKey = parts.slice(1).join(" - ").trim();
+    let cat = reverseCatNames[catTitle];
+
+    if (!cat) return;
+
+    // Filter out the papers we don't care about right now
+    if (paperType === 'paper1' && cat !== 'paper1_topic') return;
+    if (paperType === 'sanskrit' && !['vedic', 'grammar', 'darshan', 'sahitya', 'other'].includes(cat)) return;
+
+    let key = cat + "|" + setKey;
+    if (!topicStats[key]) topicStats[key] = { sum: 0, count: 0, cat: cat, setKey: setKey };
+
+    topicStats[key].sum += h.pct;
+    topicStats[key].count += 1;
+  });
+
+  // Calculate averages and sort worst to best
+  let averages = Object.values(topicStats).map(t => ({
+    cat: t.cat, setKey: t.setKey, avg: t.sum / t.count
+  }));
+
+  averages.sort((a, b) => a.avg - b.avg);
+  return averages.slice(0, 5); // Return the bottom 5
+}
+
+// 3. The Master Generator
+async function generateAIBooster(paperType) {
+  // A. Check Premium Pass Access
+  const reqPass = paperType === 'paper1' ? 'general' : 'sanskrit';
+  if (!hasAccess(reqPass)) {
+    document.getElementById('premium-lock-modal').style.display = 'flex';
+    return;
+  }
+
+  // B. Check Daily Limits (Zero-Cost Local Storage)
+  const today = new Date().toLocaleDateString('en-IN');
+  const limitKey = `ai_booster_limit_${paperType}`;
+  let limitData = JSON.parse(localStorage.getItem(limitKey) || `{"date": "${today}", "count": 2}`);
+
+  if (limitData.date !== today) limitData = { date: today, count: 2 };
+  if (limitData.count <= 0) {
+    showToast("⏳ Daily limit reached! You can generate 2 AI tests per day.");
+    return;
+  }
+
+  // C. Find Weak Topics
+  const weakTopics = getWeakTopics(paperType);
+  if (weakTopics.length === 0) {
+     showToast("📊 Not enough data! Take a few topic-wise tests first so the AI can analyze your weaknesses.");
+     return;
+  }
+
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  // D. "Smart Fetch" - Only download the Google Sheets we actually need!
+  let catsToFetch = [...new Set(weakTopics.map(t => t.cat))];
+  let fetchPromises = catsToFetch.map(c => fetchQuestions(c));
+  await Promise.all(fetchPromises);
+
+  document.getElementById('loading-overlay').style.display = 'none';
+
+  // E. Assemble the Custom Test
+  let assembledQuestions = [];
+  // Calculate how many questions to pull per topic (e.g., 6 questions from 5 topics = 30)
+  let qsPerTopic = Math.ceil(30 / weakTopics.length);
+
+  weakTopics.forEach(t => {
+     let topicQs = allQuestions[t.cat][t.setKey];
+     if (topicQs && topicQs.length > 0) {
+        // SAFEGUARD: Exclude questions tied to Data Tables/Comprehension so they don't break!
+        let standaloneQs = topicQs.filter(q => !q.groupId);
+        let shuffled = shuffleArray([...standaloneQs]);
+        assembledQuestions.push(...shuffled.slice(0, qsPerTopic));
+     }
+  });
+
+  // Cap at exactly 30 questions
+  assembledQuestions = assembledQuestions.slice(0, 30);
+
+  if(assembledQuestions.length === 0) {
+      showToast("⚠️ Could not assemble questions. Please try again later.");
+      return;
+  }
+
+  // F. The "Interleaved Shuffle" for maximum brain retention
+  assembledQuestions = shuffleArray(assembledQuestions);
+
+  // G. Deduct Local Limit
+  limitData.count -= 1;
+  localStorage.setItem(limitKey, JSON.stringify(limitData));
+  updateAIBoosterLimitsUI();
+
+  // H. Launch the Test!
+  testState.category = 'ai_booster';
+  testState.currentSet = paperType;
+  testState.questions = assembledQuestions;
+  testState.current = 0;
+  testState.answers = {};
+  testState.marked = {};
+  testState.finished = false;
+  
+  testState.timeLeft = assembledQuestions.length * 72;
+  
+  // NOTE: Saved without emojis for optimized Firebase storage
+  testState.testName = paperType === 'paper1' ? "AI Booster: Paper 1" : "AI Booster: Sanskrit";
+
+  document.body.classList.add('test-mode-active');
+  document.getElementById('test-categories').style.display = 'none';
+  document.getElementById('test-sets-view').style.display = 'none';
+  document.getElementById('test-interface').style.display = 'block';
+  window.scrollTo(0, 0);
+
+  document.getElementById('test-title').textContent = testState.testName;
+  const displayMinutes = Math.ceil(testState.timeLeft / 60);
+  document.getElementById('test-subtitle').textContent = assembledQuestions.length + ' Targeted Questions • ' + displayMinutes + ' Minutes';
+
+  buildPalette();
+  renderQuestion();
+  startTimer();
+}
+
+
 
 // ==========================================
 // === PDF NOTES ENGINE (STANDALONE) ========
