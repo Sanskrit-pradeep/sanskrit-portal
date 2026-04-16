@@ -128,7 +128,7 @@
         </div>
       </div>
 
-      <button id="nav-auth-btn" onclick="showAuthModal()" class="btn btn-outline btn-sm" style="margin-right: 12px; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--gold); border-color: var(--gold);">🔒 Log In</button>
+      <button id="nav-auth-btn" onclick="showAuthModal('login')" class="btn btn-outline btn-sm" style="margin-right: 12px; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--gold); border-color: var(--gold);">🔒 Log In</button>
     </div>
     
   </div>
@@ -593,13 +593,13 @@
 
     <div class="tabs-container">
       <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('notes')">📚 Notes</button>
-        <button class="tab-btn" onclick="switchTab('tests')">📝 Mocks</button>
+        <button class="tab-btn active" onclick="switchTab('tests')">📝 Mocks</button>
+        <button class="tab-btn" onclick="switchTab('notes')">📚 Notes</button>
         <button class="tab-btn" onclick="switchTab('videos')">🎥 Videos</button>
         <button class="tab-btn" onclick="switchTab('pyqs')">📅 PYQs</button>
       </div>
 
-      <div id="tab-notes" class="tab-content active">
+      <div id="tab-notes" class="tab-content">
         <div class="notes-grid" id="notes-main-grid">
           <div class="note-card" onclick="showNotesTopic('veda')" style="cursor:pointer; border-color:var(--gold);">
             <h4>वेदः</h4>
@@ -652,7 +652,7 @@
         </div>
       </div>
 
-      <div id="tab-tests" class="tab-content">
+      <div id="tab-tests" class="tab-content active">
         <p style="color:var(--text-mid); margin-bottom: 24px; text-align:center;">Experience our exam interface with these open-access mock tests.</p>
         <div class="test-categories-grid" style="max-width:800px; margin: 0 auto;">
           <div class="test-cat-card" onclick="openFreeSets('paper1_full')" style="position: relative;">
@@ -1127,10 +1127,10 @@
       </div>
       <div class="footer-col">
         <h4>Study Materials</h4>
-        <a href="#" onclick="navigate('study');switchTab('notes');return false;">Notes</a>
+        <a href="#" onclick="navigate('free');switchTab('notes');return false;">Notes</a>
         <a href="#" onclick="navigate('mocktest');return false;">Mock Tests</a>
-        <a href="#" onclick="navigate('study');switchTab('videos');return false;">Videos</a>
-        <a href="#" onclick="navigate('study');switchTab('pyqs');return false;">PYQs</a>
+        <a href="#" onclick="navigate('free');switchTab('videos');return false;">Videos</a>
+        <a href="#" onclick="navigate('free');switchTab('pyqs');return false;">PYQs</a>
       </div>
       <div class="footer-col">
         <h4>Quick Links</h4>
@@ -1394,9 +1394,9 @@
 <div id="expiry-modal" class="modal-overlay" style="z-index: 3600;">
   <div class="modal-content" style="text-align: center; max-width: 400px; border-top: 6px solid #FF5252;">
     <div style="font-size: 3rem; margin-bottom: 12px;">⏳</div>
-    <h3 style="color: #D32F2F; margin-bottom: 8px; font-size: 1.4rem;">Vartika Param Expiring!</h3>
+    <h3 id="expiry-pass-name" style="color: #D32F2F; margin-bottom: 8px; font-size: 1.4rem;">Premium Pass Expiring!</h3>
     <p style="color: var(--text-mid); margin-bottom: 20px; line-height: 1.6; font-size: 0.95rem;">
-      Your premium access expires in <strong id="expiry-days-text" style="color: #D32F2F; font-size: 1.1rem;">X</strong> days. Don't lose access to your mock tests and saved questions!
+      Your premium pass access expires in <strong id="expiry-days-text" style="color: #D32F2F; font-size: 1.1rem;">X</strong> days. Don't lose access to your mock tests and saved questions!
     </p>
     
     <div style="background: #FFF3E0; border: 1px dashed #FF9800; padding: 16px; border-radius: var(--radius-sm); margin-bottom: 24px;">
@@ -1458,6 +1458,23 @@
       <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="document.getElementById('start-test-modal').style.display='none'">Cancel</button>
       <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="executeStartTest()">Yes, Start Test</button>
     </div>
+  </div>
+</div>
+
+<div id="verify-alert-modal" class="modal-overlay" style="z-index: 4000;">
+  <div class="modal-content" style="text-align: center; max-width: 420px; border-top: 6px solid #FF9800;">
+    <div style="font-size: 3.5rem; margin-bottom: 12px;">📧</div>
+    <h3 style="color: var(--brown); margin-bottom: 12px;">Check your Email</h3>
+    <p style="color: var(--text-mid); margin-bottom: 20px; font-size: 0.95rem; line-height: 1.6;">
+      Your account has been created successfully! We sent a secure activation link to your email address.<br><br>
+      <strong>Please click the link to activate your account before logging in.</strong>
+    </p>
+    <div style="background: #FFEBEE; border: 1px dashed #D32F2F; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 24px;">
+      <p style="font-size: 0.85rem; color: #B71C1C; font-weight: 600; margin: 0;">
+        ⚠️ Note: If you don't see it in your Inbox, please check your SPAM or PROMOTIONS folder!
+      </p>
+    </div>
+    <button class="btn btn-primary" style="width: 100%; justify-content: center; background: #FF9800;" onclick="document.getElementById('verify-alert-modal').style.display='none'">I understand</button>
   </div>
 </div>
 

@@ -37,9 +37,16 @@ const FREE_TRIAL_DAYS = 5; // Change this single number to update the entire web
 
 
 // --- AUTHENTICATION UI LOGIC ---
-function showAuthModal() {
+function showAuthModal(forceMode = null) {
   document.getElementById('auth-modal').style.display = 'flex';
   document.getElementById('auth-error').style.display = 'none';
+  
+  // SMART UI SYNC: Ensures the popup matches the button you clicked
+  if (forceMode === 'signup' && !isSignUpMode) {
+    toggleAuthMode();
+  } else if (forceMode === 'login' && isSignUpMode) {
+    toggleAuthMode();
+  }
 }
 
 // === SECURITY SHIELD ===
@@ -101,6 +108,8 @@ async function handleForgotPassword() {
 }
 
 // --- CLOUD SIGN UP & LOG IN LOGIC ---
+let isNewSignUp = false; // NEW: Prevents Firebase from interrupting the database write
+
 async function handleAuthAction() {
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
@@ -120,6 +129,8 @@ async function handleAuthAction() {
 
   try {
     if (isSignUpMode) {
+      isNewSignUp = true; // Lock the background observer!
+      
       // Create Account
       const userCredential = await auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
@@ -150,19 +161,21 @@ async function handleAuthAction() {
         email: email,
         whatsapp: whatsapp,
         passes: initialPasses, 
-        accessLevel: initialAccessLevel, // <-- NEW! Stamped at creation
+        accessLevel: initialAccessLevel,
         createdAt: new Date().toISOString()
       });
       
-      // DEV SWITCH LOGIC: Force logout only if verification is strictly required
+      // DEV SWITCH LOGIC: Show the hard pop-up instead of a disappearing toast!
       if (REQUIRE_EMAIL_VERIFICATION) {
         await auth.signOut(); 
-        showToast("Account created! 📧 Please check your email to verify before logging in.");
+        document.getElementById('verify-alert-modal').style.display = 'flex'; // <-- NEW: Triggers the big warning!
       } else {
-        showToast("Account created! Welcome to the platform.");
+        showToast("Account created! Logging you in...");
+        setTimeout(() => window.location.reload(), 1500); 
       }
       
       document.getElementById('auth-modal').style.display = 'none';
+      isNewSignUp = false; // Unlock the background observer!
       
     } else {
       // Log In
@@ -174,7 +187,7 @@ async function handleAuthAction() {
       // DEV SWITCH LOGIC: Check verification only if required
       if (REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) {
         await auth.signOut();
-        errorBox.textContent = "⚠️ Please verify your email before logging in. Check your inbox!";
+        errorBox.textContent = "⚠️ Please verify your email before logging in. Check your inbox & spam folder!";
         errorBox.style.display = 'block';
         return;
       }
@@ -183,6 +196,7 @@ async function handleAuthAction() {
       document.getElementById('auth-modal').style.display = 'none';
     }
   } catch (error) {
+    isNewSignUp = false; // <-- CRITICAL FIX: Instantly unlock if sign-up fails!
     errorBox.textContent = error.message;
     errorBox.style.display = 'block';
   } finally {
@@ -230,7 +244,7 @@ function updateNavUI(user, nameStr) {
         loginBtn.style.background = "transparent";
         loginBtn.style.color = "var(--gold)";
         loginBtn.style.border = "1px solid var(--gold)";
-        loginBtn.onclick = showAuthModal;
+        loginBtn.onclick = () => showAuthModal('login'); // Force Login Mode
     }
     if (userMenuBtn) userMenuBtn.style.display = 'none';
     if (bellBtn) bellBtn.style.display = 'none';
@@ -238,6 +252,9 @@ function updateNavUI(user, nameStr) {
 }
 
 auth.onAuthStateChanged(async (user) => {
+  // FIX: Do not interrupt the account creation process!
+  if (isNewSignUp) return; 
+
   if (user) {
     // Check verification safely on page load
     try { await user.reload(); } catch(e) {}
@@ -383,14 +400,14 @@ function navigate(page, addToHistory = true, keepFreeMode = false) {
   
   const topNavMap = {
     'home': 'Home', 'study': 'Study', 'mocktest': 'Test',
-    'courses': 'Courses', 'free': 'Free Services', 'dashboard': 'Dashboard',
+    'courses': 'Courses', 'free': 'Free Content', 'dashboard': 'Dashboard',
     'about': 'About Us', 'contact': 'Contact', 'admin': '👑 Admin'
   };
   
   let activeText = topNavMap[page];
 
   // SMART OVERRIDE: If we are on Mock Tests but it's Free Mode, trick the nav bar!
-  if (page === 'mocktest' && isFreeMode) activeText = 'Free Services';
+  if (page === 'mocktest' && isFreeMode) activeText = 'Free Content';
 
   if (activeText) {
     document.querySelectorAll('.nav-links .nav-btn').forEach(btn => {
@@ -433,88 +450,64 @@ function cancelExitTest() {
   pendingNavigation = null;
 }
 
-// --- NEW: Smart Browser Back Button Listener ---
+// --- UPGRADED: Smart Browser Back Button Listener ---
 window.addEventListener('popstate', function(event) {
   
   // 1. Check if the Mobile "More" Drawer is open
   const drawer = document.getElementById('mobileDrawer');
   if (drawer && drawer.classList.contains('open')) {
-    toggleMobileDrawer(); // Close the drawer
-    history.pushState({ page: currentPage }, '', '#' + currentPage); // Trap the back button
-    return; // Stop here!
+    toggleMobileDrawer(); 
+    return; 
   }
-  // 1.5 Check if the Mobile Question Palette is open
+  
+  // 2. Check if the Mobile Question Palette is open
   const paletteDrawer = document.getElementById('mobile-palette-drawer');
   if (paletteDrawer && paletteDrawer.classList.contains('open')) {
-    closeMobilePalette(); // Close the palette
-    history.pushState({ page: currentPage }, '', '#' + currentPage); // Trap the back button
-    return; // Stop here!
+    closeMobilePalette(); 
+    return; 
   }
 
-  // 2. Check if the "Saved Questions" modal is open
-  const savedModal = document.getElementById('saved-qs-modal');
-  if (savedModal && savedModal.style.display === 'flex') {
-    savedModal.style.display = 'none';
-    history.pushState({ page: currentPage }, '', '#' + currentPage);
-    return;
+  // 3. THE UNIVERSAL POP-UP CLOSER
+  // Finds any modal that is currently open and closes it!
+  const openModals = Array.from(document.querySelectorAll('.modal-overlay')).filter(m => m.style.display === 'flex');
+  if (openModals.length > 0) {
+    openModals.forEach(m => m.style.display = 'none');
+    
+    // If they pressed back on the "Leave Test" warning, cancel the pending exit
+    if (pendingNavigation) pendingNavigation = null;
+    return; // Stop here! The back button successfully closed the pop-up.
   }
 
-  // Check if the "History" modal is open
-  const historyModal = document.getElementById('history-modal');
-  if (historyModal && historyModal.style.display === 'flex') {
-    historyModal.style.display = 'none';
-    history.pushState({ page: currentPage }, '', '#' + currentPage);
-    return;
-  }
-
-  // 3. Check if the "Submit Warning" modal is open
-  const submitModal = document.getElementById('submit-modal');
-  if (submitModal && submitModal.style.display === 'flex') {
-    submitModal.style.display = 'none';
-    history.pushState({ page: currentPage }, '', '#' + currentPage);
-    return;
-  }
-
-  // 4. Check if the "Leave Test" warning is already open
-  const exitModal = document.getElementById('exit-modal');
-  if (exitModal && exitModal.style.display === 'flex') {
-    cancelExitTest(); // Run your existing cancel function
-    return;
-  }
-
-  // 5. Check if the Notification modal is open
-  const notifyModal = document.getElementById('notification-modal');
-  if (notifyModal && notifyModal.style.display === 'flex') {
-    notifyModal.style.display = 'none';
-    history.pushState({ page: currentPage }, '', '#' + currentPage);
-    return;
-  }
-
-  // 6. Check if the Logout modal is open
-  const logoutModal = document.getElementById('logout-modal');
-  if (logoutModal && logoutModal.style.display === 'flex') {
-    logoutModal.style.display = 'none';
-    history.pushState({ page: currentPage }, '', '#' + currentPage);
-    return;
-  }
-
-  // 7. If the screen is clear, do normal navigation!
+  // 4. If the screen is completely clear, do normal page navigation!
   if (event.state && event.state.page) {
-    // Retrieve the free mode flag from the browser's history
     const wasFree = event.state.isFree || false;
     navigate(event.state.page, false, wasFree);
   } else {
     navigate('home', false);
   }
+});
 
-  // Check if the Start Test modal is open
-  const startTestModal = document.getElementById('start-test-modal');
-  if (startTestModal && startTestModal.style.display === 'flex') {
-    startTestModal.style.display = 'none';
-    const wasFree = (event.state && event.state.isFree) || false;
-    history.pushState({ page: currentPage, isFree: wasFree }, '', '#' + currentPage);
-    return;
+// ==========================================
+// === UNIVERSAL POP-UP & BACKGROUND MANAGER ===
+// ==========================================
+let lastModalState = false;
+const modalObserver = new MutationObserver(() => {
+  // Check if ANY modal is currently open
+  const openModals = Array.from(document.querySelectorAll('.modal-overlay')).filter(m => m.style.display === 'flex');
+  const isModalOpen = openModals.length > 0;
+  
+  if (isModalOpen && !lastModalState) {
+    // A pop-up just opened! Lock the background scroll.
+    document.body.style.overflow = 'hidden';
+    
+    // Trap the browser's Back Button so it closes the pop-up instead of leaving the page
+    history.pushState({ modalOpen: true, page: currentPage, isFree: isFreeMode }, '', '#' + currentPage);
+  } else if (!isModalOpen && lastModalState) {
+    // All pop-ups closed! Unlock the background scroll.
+    document.body.style.overflow = '';
   }
+  
+  lastModalState = isModalOpen;
 });
 
 // Feature: Toast Notifications
@@ -692,15 +685,15 @@ async function fetchQuestions(cat) {
         else if (rawAns === "D" || rawAns === "4") convertedAns = 3;
         else convertedAns = Math.max(0, Number(rawAns) - 1);
 
-        // --- THE MAGIC FILTER: Check if this question is marked as free ---
-        const isFreeQuestion = String(row.type || row.Type || "").trim().toLowerCase() === "free";
-
+        
+        const groupId = String(row.groupid || row.GroupID || row.group || "").trim();
+        
         allQuestions[cat][setKey].push({
           q: questionText,
           options: [row.opta || row.opt0 || "A", row.optb || row.opt1 || "B", row.optc || row.opt2 || "C", row.optd || row.opt3 || "D"],
           answer: convertedAns,
-          explanation: row.explanation || "",
-          isFree: isFreeQuestion // Attach the flag!
+          explanation: row.explanation || "",          
+          groupId: groupId
         });
       }
     });
@@ -833,17 +826,7 @@ async function showSets(cat) {
   // 1. SCENARIO A: No Account (Guest) -> Prompt Sign Up
   if (!currentUser) {
     showToast("⚠️ Please create a free account to unlock practice tests!");
-    
-    isSignUpMode = true; 
-    document.getElementById('auth-title').textContent = "Create Account";
-    document.getElementById('auth-subtitle').textContent = `Start your ${FREE_TRIAL_DAYS}-Day Free Premium Trial!`;
-    document.getElementById('auth-name').style.display = 'block';
-    const wa = document.getElementById('auth-whatsapp'); if(wa) wa.style.display = 'block';
-    const fp = document.getElementById('forgot-password-box'); if(fp) fp.style.display = 'none';
-    document.getElementById('auth-action-btn').textContent = "Sign Up";
-    document.getElementById('auth-switch-text').innerHTML = "Already have an account? <a href='#' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Log In</a>";
-    
-    showAuthModal();
+    showAuthModal('signup'); // Opens modal perfectly synced to Sign Up
     return; 
   }
 
@@ -973,9 +956,12 @@ async function openFreeSets(mode) {
         else if (rawAns === "D" || rawAns === "4") convertedAns = 3;
         else convertedAns = Math.max(0, Number(rawAns) - 1);
 
+        
+        const groupId = String(row.groupid || row.GroupID || row.group || "").trim();
         freeQuestionsCache[mode][setKey].questions.push({
           q: row.question, options: [row.opt0||row.opta, row.opt1||row.optb, row.opt2||row.optc, row.opt3||row.optd],
-          answer: convertedAns, explanation: row.explanation
+          answer: convertedAns, explanation: row.explanation,
+          groupId: groupId
         });
       });
     } catch (error) {
@@ -1072,14 +1058,38 @@ if(document.getElementById('back-to-cat-btn')) {
   });
 }
 
-// --- NEW LOGIC: The Shuffler Brain ---
+// --- UPGRADED SMART LOGIC: The "Lock-in-Place" Shuffler ---
 function shuffleQuestions(array) {
-  let shuffled = [...array]; 
-  for (let i = shuffled.length - 1; i > 0; i--) {
+  const result = new Array(array.length); // Create an empty grid of the same size
+  const shufflable = [];
+
+  // 1. Find the anchored questions and lock them into their original seats
+  array.forEach((q, index) => {
+    if (q.groupId) {
+      // If it has a GroupID, freeze it exactly where it was in the Google Sheet!
+      result[index] = q; 
+    } else {
+      // If it's a normal question, put it in the shuffling hat
+      shufflable.push(q);
+    }
+  });
+
+  // 2. Vigorously shuffle the normal questions
+  for (let i = shufflable.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [shufflable[i], shufflable[j]] = [shufflable[j], shufflable[i]];
   }
-  return shuffled;
+
+  // 3. Drop the shuffled questions back into the empty slots around the locked ones
+  let shuffleIndex = 0;
+  for (let i = 0; i < result.length; i++) {
+    if (result[i] === undefined) {
+      result[i] = shufflable[shuffleIndex];
+      shuffleIndex++;
+    }
+  }
+
+  return result;
 }
 
 // --- UPDATED LOGIC: Start a specific set ---
@@ -1870,8 +1880,9 @@ function loadDashboard() {
   if (!isFirebaseReady) {
     document.getElementById('name-setup-box').style.display = 'block';
     document.getElementById('name-setup-box').innerHTML = `
-      <div class="spinner" style="margin: 0 auto;"></div>
-      <p style="color:var(--text-light); margin-top:16px;">Connecting securely to Cloud...</p>
+      <h3 style="color:var(--brown); margin-bottom: 12px;">Welcome to your Dashboard!</h3>
+      <p style="color:var(--text-light); margin-bottom:20px;">Please create a free account or log in to track your scores, earn badges, and save difficult questions.</p>
+      <button class="btn btn-primary" onclick="showAuthModal('signup')" style="margin: 0 auto;">🔒 Log In / Sign Up</button>
     `;
     document.getElementById('dashboard-hero').style.display = 'none';
     document.querySelector('.stats-grid').style.display = 'none';
@@ -1927,6 +1938,7 @@ function loadDashboard() {
     let activePassesHTML = '';
     let hasAnyPass = false;
     let minDaysLeft = Infinity;
+    let expiringPassName = "Premium Pass";
 
     // Define the visual style for each pass type (Minimalist Pill with SVG Icons)
     const passDetails = [
@@ -1944,7 +1956,10 @@ function loadDashboard() {
         
         if (daysLeft > 0) {
           hasAnyPass = true;
-          if (daysLeft < minDaysLeft) minDaysLeft = daysLeft; // Track nearest expiry
+          if (daysLeft < minDaysLeft) {
+            minDaysLeft = daysLeft; // Track nearest expiry
+            expiringPassName = p.name; // <-- NEW: Remember the exact name of the pass!
+          }
           
           // NEW MINIMALIST PILL DESIGN
           activePassesHTML += `
@@ -1972,6 +1987,7 @@ function loadDashboard() {
       if (minDaysLeft <= 5) {
         if (!sessionStorage.getItem('expiry_warned')) {
           setTimeout(() => {
+            document.getElementById('expiry-pass-name').textContent = expiringPassName + " Pass is expiring soon!"; // <-- NEW: Updates the modal title!
             document.getElementById('expiry-days-text').textContent = minDaysLeft;
             document.getElementById('expiry-modal').style.display = 'flex';
             sessionStorage.setItem('expiry_warned', 'true');
@@ -2490,6 +2506,11 @@ document.addEventListener('DOMContentLoaded', () => {
   
   loadDashboard();
   renderCourses();
+
+  // 3. NEW: Start watching all pop-ups to lock the background when they open!
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modalObserver.observe(modal, { attributes: true, attributeFilter: ['style'] });
+  });
 });
 
 // ==========================================
@@ -3053,8 +3074,15 @@ function claimRenewalDiscount() {
   const studentName = currentUser.dbData.name || "Student";
   const studentEmail = currentUser.email;
   
-  // Create a pre-filled WhatsApp message
-  const message = `नमस्ते! I am ${studentName} (${studentEmail}). My Vartika Param access is expiring soon, and I saw the special renewal discount pop-up. I would like to renew my account!`;
+  // NEW: Read the exact pass name from the pop-up title!
+  let passName = "Premium Pass";
+  const titleEl = document.getElementById('expiry-pass-name');
+  if (titleEl) {
+    passName = titleEl.textContent.replace(' Expiring!', '');
+  }
+  
+  // Create a pre-filled WhatsApp message dynamically
+  const message = `Hello! I am ${studentName} (${studentEmail}). My ${passName}  and I saw the special renewal discount pop-up. I would like to renew my account!`;
   
   // EDIT THIS: Put your actual WhatsApp business number here (include country code, no + or spaces)
   const phone = "918172063129"; 
