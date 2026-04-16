@@ -1611,6 +1611,7 @@ async function generateAIBooster(paperType) {
 
   if(assembledQuestions.length === 0) {
       showToast("⚠️ Could not assemble questions. Please try again later.");
+      showCategories();
       return;
   }
 
