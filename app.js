@@ -364,6 +364,10 @@ function navigate(page, addToHistory = true, keepFreeMode = false) {
   const mistakeVault = document.getElementById('mistake-vault-view');
   if (mistakeVault) mistakeVault.style.display = 'none';
 
+  // ---> NEW FIX: Instantly hide the Leaderboard when navigating anywhere else! <---
+  const leaderboardView = document.getElementById('leaderboard-view');
+  if (leaderboardView) leaderboardView.style.display = 'none';
+
   const target = document.getElementById('page-' + page);
   if (target) {
     target.classList.add('active');
@@ -939,12 +943,20 @@ async function openFreeSets(mode) {
         let setKey = "";
         let displayDesc = "";
 
+        // NEW: Smartly extract the exact columns from your Google Sheet
+        let tabName = row.category || row.Category || config.descFallback; // Tab name (e.g., दर्शनम्)
+        let topicName = row.topic || row.Topic || tabName;                 // Topic column (e.g., तर्कसंग्रहः)
+        let setNum = row.setNumber || row.set || row.Set || '1';           // Set Number column
+
         if (mode === 'topic' || mode === 'paper1_topic') {
-          // Uses the Tab Name and Set Column (e.g., "Teaching Aptitude - Set 1")
-          setKey = `${row.category || 'Topic'} - Set ${row.set || '1'}`;
-          displayDesc = row.category || config.descFallback; 
+          // Main Title: Topic + Set (e.g., "तर्कसंग्रहः - Set 1")
+          setKey = `${topicName} - Set ${setNum}`;
+          
+          // Subtitle: Tab Name (e.g., "दर्शनम्")
+          displayDesc = tabName; 
         } else {
-          setKey = row.set || `Set ${row.Set || '1'}`;
+          // For Full Mocks: Just "Set 1"
+          setKey = `Set ${setNum}`;
           displayDesc = config.descFallback;
         }
 
@@ -1345,6 +1357,8 @@ function confirmSubmit() {
 
   // NEW: Save any mistakes to the local vault before we calculate the final score!
   if (typeof saveMistakesLocally === 'function') saveMistakesLocally();
+
+  if (typeof silentlySaveScoreToLeaderboard === 'function') silentlySaveScoreToLeaderboard(score, testState.questions.length);
 
   clearInterval(testState.timerInterval);
   testState.finished = true;
@@ -3483,31 +3497,33 @@ function updateVaultBadge() {
   if (badge) badge.textContent = `${vault.length} Saved Mistakes`;
 }
 
-// 2. Save mistakes with their Category automatically attached!
+// 2. Save mistakes strictly for Standard Premium Tests!
 function saveMistakesLocally() {
   if (!currentUser || !testState || !testState.questions) return;
+
+  // ---> NEW STRICT RULE: The Bouncer <---
+  // Block 1: Reject any Free Tests
+  if (typeof isFreeMode !== 'undefined' && isFreeMode === true) return;
+  if (testState.testName && testState.testName.includes("Free")) return;
+  
+  // Block 2: Reject AI Booster Tests
+  if (testState.category === 'ai_booster') return;
+  if (testState.testName && testState.testName.includes("AI Booster")) return;
+
   const vaultKey = `mistake_vault_${currentUser.email}`;
   let vault = JSON.parse(localStorage.getItem(vaultKey)) || [];
   
-  // NEW: A strict map to force mistakes into your 8 main folders!
-  const folderNames = {
-    'paper1': 'Paper 1 (Full Sets)',
-    'paper1_topic': 'Paper 1 (Topic-wise)',
-    'full': 'Sanskrit (Full Mocks)',
-    'vedic': 'वैदिकसाहित्यम्',
-    'grammar': 'व्याकरणम्',
-    'darshan': 'दर्शनम्',
-    'sahitya': 'साहित्यम्',
-    'other': 'अन्यानि'
-  };
+  // Clean string matching for the 8 Premium Folders
+  let broadCategory = "General Topic";
+  let tName = testState.testName || "";
 
-  // Assign the broad category based on the system's test category
-  let broadCategory = folderNames[testState.category] || "General Topic";
-  
-  // Keep AI Booster tests in their own special folders
-  if (testState.testName && testState.testName.includes("AI Booster")) {
-    broadCategory = testState.testName; 
-  }
+  if (tName.includes("वैदिक")) broadCategory = "वैदिकसाहित्यम्";
+  else if (tName.includes("व्याकरण")) broadCategory = "व्याकरणम्";
+  else if (tName.includes("दर्शन")) broadCategory = "दर्शनम्";
+  else if (tName.includes("साहित्य")) broadCategory = "साहित्यम्";
+  else if (tName.includes("अन्यानि")) broadCategory = "अन्यानि";
+  else if (tName.includes("1st Paper") || tName.includes("Paper 1")) broadCategory = "Paper 1 (Topic-wise)";
+  else if (tName.includes("Full Mock") || tName.includes("Full sets")) broadCategory = "Sanskrit (Full Mocks)";
 
   testState.questions.forEach((q, index) => {
     let userAns = testState.answers[index];
@@ -3673,4 +3689,125 @@ function closeMistakeVault() {
     document.getElementById('mistake-vault-view').style.display = 'none';
     navigate('dashboard');
   }
+}
+
+
+// ==========================================
+// === GLOBAL LEADERBOARD ENGINE ===
+// ==========================================
+const LEADERBOARD_API = "https://script.google.com/macros/s/AKfycbx08JNnJY2ZtIPnsLLqQOty-QZMHGtDpnJPdJqyAb7NBzLDOe5V51gg3a4eHKfPlqLx/exec";
+
+// 1. Silently send score to Google Sheets in the background
+function silentlySaveScoreToLeaderboard(score, totalQs) {
+  if (!currentUser || !testState) return;
+  // Exclude AI Boosters from the Leaderboard (Optional, but recommended)
+  if (testState.category === 'ai_booster' || (testState.testName && testState.testName.includes("AI Booster"))) return;
+
+  const pct = Math.round((score / totalQs) * 100);
+  
+  const payload = {
+    name: currentUser.displayName || currentUser.email.split('@')[0],
+    email: currentUser.email,
+    testName: testState.testName || "Mock Test",
+    score: score,
+    pct: pct
+  };
+
+  // Fire and forget (Doesn't pause or slow down the user's screen)
+  fetch(LEADERBOARD_API, {
+    method: 'POST',
+    mode: 'no-cors', // Required for simple Google Apps Script posts
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(err => console.log("LB Save Background Error")); 
+}
+
+// 2. Open the UI and Fetch Rankings
+async function openLeaderboard() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('leaderboard-view').style.display = 'block';
+  window.scrollTo(0, 0);
+  history.pushState({ page: 'dashboard' }, '', '#leaderboard');
+
+  const loadingEl = document.getElementById('lb-loading');
+  const contentEl = document.getElementById('lb-content');
+  loadingEl.style.display = 'block';
+  contentEl.style.display = 'none';
+
+  // Smart Cache: Check if we downloaded the leaderboard in the last 15 minutes
+  const cacheKey = "lb_cache_data";
+  const cacheTimeKey = "lb_cache_time";
+  const now = new Date().getTime();
+  const cachedTime = localStorage.getItem(cacheTimeKey);
+
+  let lbData = [];
+
+  if (cachedTime && (now - cachedTime < 15 * 60 * 1000)) {
+    // Use local memory (Instant load, 0 API calls)
+    lbData = JSON.parse(localStorage.getItem(cacheKey));
+  } else {
+    // Fetch fresh data from Google
+    try {
+      const res = await fetch(LEADERBOARD_API);
+      lbData = await res.json();
+      localStorage.setItem(cacheKey, JSON.stringify(lbData));
+      localStorage.setItem(cacheTimeKey, now.toString());
+    } catch (e) {
+      loadingEl.innerHTML = "⚠️ Could not load leaderboard. Check connection.";
+      return;
+    }
+  }
+
+  renderLeaderboard(lbData);
+  loadingEl.style.display = 'none';
+  contentEl.style.display = 'block';
+}
+
+// 3. Draw the Podium and List
+function renderLeaderboard(data) {
+  const podiumDiv = document.getElementById('lb-podium-container');
+  const listDiv = document.getElementById('lb-list-container');
+  podiumDiv.innerHTML = ''; listDiv.innerHTML = '';
+
+  if (!data || data.length === 0) {
+    listDiv.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-light);'>No scores recorded yet! Be the first!</div>";
+    return;
+  }
+
+  // Draw Top 3 (Podium) - Order: 2nd, 1st, 3rd for visual balance
+  const top3 = data.slice(0, 3);
+  const order = [1, 0, 2]; // Index 1 is 2nd place, 0 is 1st, 2 is 3rd
+  
+  order.forEach(index => {
+    if (top3[index]) {
+      const p = top3[index];
+      const rank = index + 1;
+      let crown = rank === 1 ? '<div class="lb-crown">👑</div>' : '';
+      
+      podiumDiv.innerHTML += `
+        <div class="lb-rank lb-rank-${rank}">
+          ${crown}
+          <div class="lb-name">${p.name.split(' ')[0]}</div>
+          <div class="lb-bar">${p.pct}%</div>
+        </div>
+      `;
+    }
+  });
+
+  // Draw Ranks 4-10
+  const rest = data.slice(3, 10);
+  rest.forEach((p, i) => {
+    listDiv.innerHTML += `
+      <div class="lb-row">
+        <div class="lb-row-num">#${i + 4}</div>
+        <div class="lb-row-name">${p.name}</div>
+        <div class="lb-row-score">${p.pct}% Accuracy</div>
+      </div>
+    `;
+  });
+}
+
+function closeLeaderboard() {
+  document.getElementById('leaderboard-view').style.display = 'none';
+  navigate('dashboard');
 }

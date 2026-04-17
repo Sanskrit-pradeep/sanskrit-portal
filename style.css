@@ -1556,8 +1556,9 @@ footer {
 .card-face-back { transform: rotateY(180deg); background: #FAFAFA; overflow-y: auto; }
 
 /* Swipe Animations (Triggered via JS class toggle) */
-.swipe-out-right { transform: translateX(150%) rotate(20deg) !important; opacity: 0; }
-.swipe-out-left { transform: translateX(-150%) rotate(-20deg) !important; opacity: 0; }
+/* FIX: Added rotateY(180deg) so it stays showing the answer while flying away! */
+.swipe-out-right { transform: translateX(150%) rotate(20deg) rotateY(180deg) !important; opacity: 0; }
+.swipe-out-left { transform: translateX(-150%) rotate(-20deg) rotateY(180deg) !important; opacity: 0; }
 
 /* Bottom Action Buttons */
 .swipe-controls { display: flex; justify-content: center; gap: 24px; margin-top: 20px; }
@@ -1566,3 +1567,21 @@ footer {
 .btn-circle.btn-bad:hover { background: #FFEBEE; transform: scale(1.1); }
 .btn-circle.btn-good { color: #4CAF50; border: 2px solid #C8E6C9; }
 .btn-circle.btn-good:hover { background: #E8F5E9; transform: scale(1.1); }
+
+/* ==========================================
+   === GLOBAL LEADERBOARD ===
+   ========================================== */
+.lb-podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; margin: 32px 0; height: 160px; }
+.lb-rank { display: flex; flex-direction: column; align-items: center; width: 30%; position: relative; }
+.lb-bar { width: 100%; border-radius: 12px 12px 0 0; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 12px; color: white; font-weight: bold; font-size: 1.1rem; box-shadow: var(--shadow); }
+.lb-rank-1 .lb-bar { height: 130px; background: linear-gradient(135deg, #FFD700, #F5B041); }
+.lb-rank-2 .lb-bar { height: 100px; background: linear-gradient(135deg, #E0E0E0, #BDC3C7); }
+.lb-rank-3 .lb-bar { height: 80px; background: linear-gradient(135deg, #E67E22, #CA6F1E); }
+.lb-crown { font-size: 2rem; position: absolute; top: -35px; }
+.lb-name { font-size: 0.8rem; font-weight: 700; color: var(--brown); margin-bottom: 8px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+.lb-list { display: flex; flex-direction: column; gap: 10px; text-align: left; margin-bottom: 32px; }
+.lb-row { display: flex; align-items: center; background: white; padding: 14px 16px; border-radius: var(--radius-sm); box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--cream-dark); transition: transform 0.2s; }
+.lb-row:hover { transform: translateX(5px); }
+.lb-row-num { width: 35px; font-weight: bold; color: var(--text-light); font-size: 1.1rem; }
+.lb-row-name { flex: 1; font-weight: 600; color: var(--brown); font-size: 1rem; }
+.lb-row-score { font-weight: 700; color: var(--saffron); background: #FFF3E0; padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; border: 1px solid #FFE0B2; }
