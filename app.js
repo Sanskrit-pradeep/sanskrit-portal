@@ -359,6 +359,11 @@ function navigate(page, addToHistory = true, keepFreeMode = false) {
   }
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  // ---> NEW FIX: Instantly hide the Mistake Vault when navigating anywhere else! <---
+  const mistakeVault = document.getElementById('mistake-vault-view');
+  if (mistakeVault) mistakeVault.style.display = 'none';
+
   const target = document.getElementById('page-' + page);
   if (target) {
     target.classList.add('active');
@@ -3461,13 +3466,15 @@ function openHistoryModal() {
 }
 
 // ==========================================
-// === THE MISTAKE VAULT ENGINE ===
+// === HYBRID MISTAKE VAULT ENGINE ===
 // ==========================================
 
-let currentVault = [];
-let currentFlashcardIndex = 0;
+let fullVault = [];
+let currentCategoryVault = [];
+let currentCardIndex = 0;
+let activeCategory = "";
 
-// 1. Update the Dashboard Badge Count
+// 1. Update Dashboard Badge Count
 function updateVaultBadge() {
   if (!currentUser) return;
   const vaultKey = `mistake_vault_${currentUser.email}`;
@@ -3476,112 +3483,194 @@ function updateVaultBadge() {
   if (badge) badge.textContent = `${vault.length} Saved Mistakes`;
 }
 
-// 2. Save wrong answers silently during test submission
+// 2. Save mistakes with their Category automatically attached!
 function saveMistakesLocally() {
   if (!currentUser || !testState || !testState.questions) return;
-  
   const vaultKey = `mistake_vault_${currentUser.email}`;
   let vault = JSON.parse(localStorage.getItem(vaultKey)) || [];
+  
+  // NEW: A strict map to force mistakes into your 8 main folders!
+  const folderNames = {
+    'paper1': 'Paper 1 (Full Sets)',
+    'paper1_topic': 'Paper 1 (Topic-wise)',
+    'full': 'Sanskrit (Full Mocks)',
+    'vedic': 'वैदिकसाहित्यम्',
+    'grammar': 'व्याकरणम्',
+    'darshan': 'दर्शनम्',
+    'sahitya': 'साहित्यम्',
+    'other': 'अन्यानि'
+  };
+
+  // Assign the broad category based on the system's test category
+  let broadCategory = folderNames[testState.category] || "General Topic";
+  
+  // Keep AI Booster tests in their own special folders
+  if (testState.testName && testState.testName.includes("AI Booster")) {
+    broadCategory = testState.testName; 
+  }
 
   testState.questions.forEach((q, index) => {
     let userAns = testState.answers[index];
-    // If they answered it AND got it wrong
     if (userAns !== undefined && userAns !== q.answer) {
-      // Prevent duplicates: Check if this question is already in the vault
       if (!vault.find(v => v.q === q.q)) {
-        vault.push(q);
+        vault.push({ ...q, topic: broadCategory }); 
       }
     }
   });
-
   localStorage.setItem(vaultKey, JSON.stringify(vault));
 }
 
-// 3. Open the UI
+// 3. Open the Folders View
 function openMistakeVault() {
   if (!currentUser) return;
   const vaultKey = `mistake_vault_${currentUser.email}`;
-  currentVault = JSON.parse(localStorage.getItem(vaultKey)) || [];
+  fullVault = JSON.parse(localStorage.getItem(vaultKey)) || [];
   
-  if (currentVault.length === 0) {
+  if (fullVault.length === 0) {
     showToast("🎉 Your vault is empty! You have no saved mistakes.");
     return;
   }
 
-  // Shuffle the mistakes so they aren't in the same predictable order!
-  currentVault = shuffleArray([...currentVault]);
-  currentFlashcardIndex = 0;
+  // NEW: Auto-cleanup script! This fixes the fragmented folders already saved in your browser.
+  fullVault.forEach(item => {
+    if (item.topic) {
+      if (item.topic.includes("वैदिक")) item.topic = "वैदिकसाहित्यम्";
+      else if (item.topic.includes("व्याकरण")) item.topic = "व्याकरणम्";
+      else if (item.topic.includes("दर्शन")) item.topic = "दर्शनम्";
+      else if (item.topic.includes("साहित्य")) item.topic = "साहित्यम्";
+      else if (item.topic.includes("अन्यानि")) item.topic = "अन्यानि";
+      else if (item.topic.includes("Sanskrit Full")) item.topic = "Sanskrit (Full Mocks)";
+      else if (item.topic.includes("Paper 1") || item.topic.includes("1st Paper")) item.topic = "Paper 1 (Topic-wise)";
+    }
+  });
+  // Save the cleaned-up merged folders back to local memory
+  localStorage.setItem(vaultKey, JSON.stringify(fullVault));
 
-  // Hide dashboard, show vault
+  // Group mistakes by Topic
+  const groups = {};
+  fullVault.forEach(item => {
+    const t = item.topic || "General Topic";
+    if(!groups[t]) groups[t] = 0;
+    groups[t]++;
+  });
+
+  const grid = document.getElementById('mv-folders-grid');
+  grid.innerHTML = '';
+  Object.keys(groups).forEach(topic => {
+    grid.innerHTML += `
+      <div class="mv-folder" onclick="openVaultCategory('${topic}')">
+        <div style="font-size: 2rem; margin-bottom: 8px;">📂</div>
+        <h4 style="color: var(--brown); margin-bottom: 4px; font-size: 0.95rem;">${topic}</h4>
+        <span style="background: #FFF3E0; color: #E65100; font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 50px;">${groups[topic]} Questions</span>
+      </div>
+    `;
+  });
+
+  // Switch UI State
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('mistake-vault-view').style.display = 'block';
+  document.getElementById('mv-folders-view').style.display = 'block';
+  document.getElementById('mv-stack-view').style.display = 'none';
+  document.getElementById('mv-header-title').textContent = "My Vault Folders";
   window.scrollTo(0, 0);
 
-  renderFlashcard();
+  history.pushState({ page: 'dashboard' }, '', '#mistake-vault');
 }
 
-// 4. Render the current flashcard
-function renderFlashcard() {
-  const qData = currentVault[currentFlashcardIndex];
-  document.getElementById('flashcard-counter').textContent = `${currentFlashcardIndex + 1} / ${currentVault.length}`;
-  document.getElementById('flashcard-q').innerHTML = qData.q;
+// 4. Open the Swipe Stack for a specific Folder
+function openVaultCategory(topic) {
+  activeCategory = topic;
+  // Filter the vault to only show this category's mistakes, and shuffle them!
+  currentCategoryVault = shuffleArray(fullVault.filter(v => v.topic === topic));
+  currentCardIndex = 0;
+
+  document.getElementById('mv-folders-view').style.display = 'none';
+  document.getElementById('mv-stack-view').style.display = 'block';
+  document.getElementById('mv-header-title').textContent = topic;
   
-  // Reset visibility
-  document.getElementById('btn-reveal-ans').style.display = 'block';
-  document.getElementById('flashcard-ans-box').style.display = 'none';
-  document.getElementById('flashcard-actions').style.display = 'none';
+  renderStackCard();
 }
 
-// 5. Reveal Answer
-function revealFlashcardAnswer() {
-  const qData = currentVault[currentFlashcardIndex];
-  document.getElementById('btn-reveal-ans').style.display = 'none';
+// 5. Render the Top Card
+function renderStackCard() {
+  const cardEl = document.getElementById('active-swipe-card');
+  const controls = document.getElementById('mv-swipe-controls');
   
-  // Show correct text and explanation
-  document.getElementById('flashcard-correct-text').innerHTML = qData.options[qData.answer];
+  // Reset animations and flips
+  cardEl.className = 'swipe-card'; 
+  controls.style.opacity = '0';
+  controls.style.pointerEvents = 'none';
+
+  const qData = currentCategoryVault[currentCardIndex];
+  document.getElementById('mv-stack-counter').textContent = `${currentCardIndex + 1} / ${currentCategoryVault.length}`;
+  document.getElementById('mv-card-q').innerHTML = qData.q;
+  document.getElementById('mv-card-ans').innerHTML = qData.options[qData.answer];
   
-  const expBox = document.getElementById('flashcard-exp');
+  const expBox = document.getElementById('mv-card-exp');
   if (qData.explanation && qData.explanation.trim() !== "") {
-    expBox.innerHTML = "<strong>Explanation:</strong><br>" + qData.explanation;
-    expBox.style.display = 'block';
+    expBox.innerHTML = "💡 " + qData.explanation;
   } else {
-    expBox.style.display = 'none';
+    expBox.innerHTML = "";
   }
-
-  document.getElementById('flashcard-ans-box').style.display = 'block';
-  document.getElementById('flashcard-actions').style.display = 'flex';
 }
 
-// 6. Master (Remove) a mistake
-function masterMistake() {
-  const vaultKey = `mistake_vault_${currentUser.email}`;
-  currentVault.splice(currentFlashcardIndex, 1); // Remove from active array
-  localStorage.setItem(vaultKey, JSON.stringify(currentVault)); // Save new array to browser
+// 6. Flip Card Interaction
+function flipVaultCard() {
+  const cardEl = document.getElementById('active-swipe-card');
+  if (cardEl.classList.contains('is-flipped')) return; // Already flipped!
+
+  cardEl.classList.add('is-flipped');
   
-  showToast("✅ Great job! Removed from your vault.");
-  
-  if (currentVault.length === 0) {
-    closeMistakeVault();
-    showToast("🎉 Vault cleared! You mastered all your mistakes.");
+  // Reveal the Tinder action buttons
+  const controls = document.getElementById('mv-swipe-controls');
+  controls.style.opacity = '1';
+  controls.style.pointerEvents = 'all';
+}
+
+// 7. Tinder Swipe Logic
+function handleSwipe(direction) {
+  const cardEl = document.getElementById('active-swipe-card');
+  const activeQ = currentCategoryVault[currentCardIndex];
+
+  // Trigger the CSS animation
+  if (direction === 'right') {
+    cardEl.classList.add('swipe-out-right'); // MASTERED (Remove)
+    
+    // Remove from the master vault array
+    fullVault = fullVault.filter(v => v.q !== activeQ.q);
+    localStorage.setItem(`mistake_vault_${currentUser.email}`, JSON.stringify(fullVault));
+    
+    // Remove from current category array
+    currentCategoryVault.splice(currentCardIndex, 1); 
+    showToast("💚 Mastered! Removed from vault.");
+    
   } else {
-    // Keep index the same, since the array shrunk, rendering will show the "next" item natively
-    if (currentFlashcardIndex >= currentVault.length) currentFlashcardIndex = 0;
-    renderFlashcard();
+    cardEl.classList.add('swipe-out-left'); // KEEP IN VAULT (Skip)
+    currentCardIndex++; // Move to next index
+    showToast("🔄 Kept in vault for later.");
   }
+
+  // Wait 400ms for the animation to finish, then load next card
+  setTimeout(() => {
+    if (currentCategoryVault.length === 0) {
+       showToast("🎉 You cleared this folder!");
+       openMistakeVault(); // Go back to folders
+    } else {
+       // Loop back if we reached the end of the deck
+       if (currentCardIndex >= currentCategoryVault.length) currentCardIndex = 0;
+       renderStackCard();
+    }
+  }, 400);
 }
 
-// 7. Skip to Next
-function nextFlashcard() {
-  currentFlashcardIndex++;
-  if (currentFlashcardIndex >= currentVault.length) {
-    currentFlashcardIndex = 0; // Loop back to the start
-    showToast("🔄 Vault looped! Keep studying.");
-  }
-  renderFlashcard();
-}
-
-// 8. Close Vault
+// 8. Close / Back Navigation
 function closeMistakeVault() {
-  document.getElementById('mistake-vault-view').style.display = 'none';
-  navigate('dashboard');
+  // If in Stack view, go back to Folders
+  if (document.getElementById('mv-stack-view').style.display === 'block') {
+    openMistakeVault();
+  } else {
+    // If in Folders view, go back to Dashboard
+    document.getElementById('mistake-vault-view').style.display = 'none';
+    navigate('dashboard');
+  }
 }
