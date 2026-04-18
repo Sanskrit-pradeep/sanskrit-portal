@@ -309,11 +309,26 @@ auth.onAuthStateChanged(async (user) => {
         if (currentPage === 'dashboard') loadDashboard(); 
         
       } else {
-        // BUG FIX: Catch the race condition for brand new sign-ups!
-        setTimeout(() => {
-           refreshStudentProfile(); // Try again 1.5 seconds later
-           isFirebaseReady = true; 
-        }, 1500);
+        // SMART FIX: Check multiple times for slow internet!
+        let attempts = 0;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          
+          // Knock on the database door again
+          db.collection("users").doc(user.uid).get().then((retryDoc) => {
+            if (retryDoc.exists) {
+              clearInterval(checkInterval); // Stop checking!
+              refreshStudentProfile();      // Load the dashboard
+              isFirebaseReady = true;
+            } else if (attempts >= 5) {
+              // Give up after 5 seconds to prevent an endless loop
+              clearInterval(checkInterval);
+              isFirebaseReady = true;
+              if (currentPage === 'dashboard') loadDashboard();
+            }
+          });
+          
+        }, 1000); // Check every 1000 milliseconds (1 second)
       }
     }).catch(err => console.error("Error fetching profile:", err));
 
