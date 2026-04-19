@@ -659,14 +659,14 @@ async function fetchQuestions(cat) {
   if (!targetURL || targetURL.includes('PASTE_')) return false;
 
   try {
-    // --- NEW CODE: The 10-Second Stopwatch ---
+    // --- NEW CODE: The 30-Second Stopwatch ---
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30000 ms = 30 seconds
 
     // We pass the "stopwatch" to the fetch request
     const response = await fetch(targetURL, { signal: controller.signal });
     
-    // If it succeeds before 10 seconds, we stop the stopwatch!
+    // If it succeeds before 30 seconds, we stop the stopwatch!
     clearTimeout(timeoutId); 
     // ----------------------------------------
 
@@ -720,7 +720,7 @@ async function fetchQuestions(cat) {
   } catch (error) { 
     // --- NEW CODE: Handle the timeout error silently ---
     if (error.name === 'AbortError') {
-      console.warn("Connection timed out. Took longer than 10 seconds.");
+      console.warn("Connection timed out. Took longer than 30 seconds.");
     } else {
       console.error("Fetch error:", error); 
     }
@@ -2518,11 +2518,14 @@ const myCourses = [
     videos: "15,000+ Questions",
     desc: "Ultimate practice bundle. Get full access to both General Paper 1 and Sanskrit Paper 2 mock tests, PYQs, and analytics.",
     features: [
-      "✅ Unlimited access to ALL 1st Paper Tests",
-      "✅ Unlimited access to ALL Sanskrit (Code 25) Tests",
+      "✅ Unlimited access to ALL 1st Paper Tests, Which includes 6,500+ questions (80+ full sets, 150+ topic-wise sets)",
+      "✅ Unlimited access to ALL Sanskrit (Code 25) Tests, Which includes 10,000+ questions (50+ full sets, 250+ topic-wise sets)",
+      "🤖 Get access to our special 🧠 AI Booster Mock Engine. Which analyses your weakest topics and generates a set of custom questions targeting your weakest topics.",
       "✅ Save difficult questions to your Cloud Vault",
       "✅ Subject-wise Performance Analytics",
-      "✅ Official UGC NET Previous Year Questions"
+      "✅ Practice Official UGC NET Previous Year Questions",
+      "✅ Pass validity- 6 months (180 days)",
+      "✅ You will get access to all questions over a period of six months."
     ],
     price: "₹119",
     originalPrice: "₹199",
@@ -2538,11 +2541,14 @@ const myCourses = [
     videos: "10,000+ Questions",
     desc: "Comprehensive test series covering all 10 units of Paper 2. Includes detailed explanations and performance analytics.",
     features: [
-      "✅ 100-Question NTA Pattern Full Mocks",
-      "✅ Unit-wise tests for Vedic Literature & Philosophy",
-      "✅ Classical Literature & Grammar practice",
-      "✅ Detailed Post-Test Explanations",
-      "✅ Earn streaks and gamification badges"
+      "✅ Unlimited access to ALL Sanskrit (Code 25) Tests, Which includes 10,000+ questions (50+ full sets, 250+ topic-wise sets)",
+      "✅ Topic-wise tests for All 10 Units",
+      "🤖 Get access to our special 🧠 AI Booster Mock Engine. Which analyses your weakest topics and generates a set of custom questions targeting your weakest topics.",
+      "✅ Save difficult questions to your Cloud Vault",
+      "✅ Subject-wise Performance Analytics",
+      "✅ Practice Official UGC NET Previous Year Questions",
+      "✅ Pass validity- 6 months (180 days)",
+      "✅ You will get access to all questions over a period of six months."
     ],
     price: "₹89",
     originalPrice: "₹119",
@@ -2558,10 +2564,14 @@ const myCourses = [
     videos: "5,000+ Questions",
     desc: "Dedicated mock tests for UGC NET Paper 1. Practice Teaching Aptitude, Research, DI, and Logical Reasoning.",
     features: [
-      "✅ 50-Question Full Mock Tests",
-      "✅ Topic-wise reasoning and aptitude sets",
-      "✅ Identify your weakest sections instantly",
-      "✅ Cloud sync to save your progress"
+      "✅ Unlimited access to ALL 1st Paper Tests, Which includes 6,500+ questions (80+ full sets, 150+ topic-wise sets)",
+      "✅ Topic-wise tests for All 10 Units with explanation.",
+      "🤖 Get access to our special 🧠 AI Booster Mock Engine. Which analyses your weakest topics and generates a set of custom questions targeting your weakest topics.",
+      "✅ Save difficult questions to your Cloud Vault",
+      "✅ Subject-wise Performance Analytics",
+      "✅ Practice Official UGC NET Previous Year Questions",
+      "✅ Pass validity- 6 months (180 days)",
+      "✅ You will get access to all questions over a period of six months."
     ],
     price: "₹59",
     originalPrice: "₹89",
