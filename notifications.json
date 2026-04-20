@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "2026-04-20T17:58:39.579Z",
+    "title": "home",
+    "desc": "dsfsg",
+    "type": "update",
+    "expiresAt": "2026-04-30",
+    "btnText": "",
+    "btnLink": ""
+  },
+  {
+    "id": "2026-04-20T17:56:46.486Z",
+    "title": "Welcome to github",
+    "desc": "We have built a new thing.",
+    "type": "update",
+    "expiresAt": "2026-04-30",
+    "btnText": "Click now",
+    "btnLink": "https://youtu.be/39oQrGzbosE?si=p3hp5i744CIVxdXP"
+  }
+]
