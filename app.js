@@ -34,7 +34,10 @@ const WHATSAPP_NUMBER = "918172063129";
 const REQUIRE_EMAIL_VERIFICATION = false; // Change to true before official public launch!
 
 // 7. TRIAL SETTINGS: How many days free?
-const FREE_TRIAL_DAYS = 5; // Change this single number to update the entire website
+const FREE_TRIAL_DAYS = 3; // Change this single number to update the entire website
+
+// 8. AI BOOSTER SETTINGS: How many custom tests per day?
+const AI_BOOSTER_DAILY_LIMIT = 3; // Change this single number to update the AI limits everywhere!
 
 
 // --- AUTHENTICATION UI LOGIC ---
@@ -70,7 +73,14 @@ function toggleAuthMode() {
   
   if (isSignUpMode) {
     title.textContent = "Create Account";
-    subtitle.textContent = `Start your ${FREE_TRIAL_DAYS}-Day Combo Pass Trial!`;
+    
+    // 🚀 DYNAMIC UX FIX: Only show the trial text if the Master Switch is > 0
+    if (FREE_TRIAL_DAYS > 0) {
+      subtitle.textContent = `Start your ${FREE_TRIAL_DAYS}-Day Combo Pass Trial!`;
+    } else {
+      subtitle.textContent = "Create a free account to track your progress.";
+    }
+    
     nameInput.style.display = 'block';
     if(whatsappInput) whatsappInput.style.display = 'block';
     if(forgotPassBox) forgotPassBox.style.display = 'none';
@@ -999,6 +1009,13 @@ async function showSets(cat) {
   grid.innerHTML = getSkeletonGrid(6, 'test');
   document.getElementById('sets-category-title').textContent = "Loading Practice Sets...";
 
+  // 🚀 FIX: Instantly hide the old filter while the new test loads!
+  const filterEl = document.getElementById('sets-filter');
+  if (filterEl) {
+    filterEl.style.display = 'none';
+    filterEl.innerHTML = '<option value="all">Loading...</option>';
+  }
+
   // Fetch data + smooth 400ms artificial delay for a premium feel
   const [success] = await Promise.all([fetchQuestions(cat), new Promise(r => setTimeout(r, 400))]);
   if (success) {
@@ -1042,6 +1059,13 @@ async function openFreeSets(mode) {
   grid.innerHTML = getSkeletonGrid(6, 'test'); 
   document.getElementById('sets-category-title').textContent = config.title;
   
+  // 🚀 FIX: Instantly hide the old filter while the new test loads!
+  const tempFilter = document.getElementById('sets-filter');
+  if (tempFilter) {
+    tempFilter.style.display = 'none';
+    tempFilter.innerHTML = '<option value="all">Loading...</option>';
+  }
+
   const backBtn = document.getElementById('back-to-cat-btn');
   if(backBtn) backBtn.textContent = '← Back to Free Services';
 
@@ -1105,9 +1129,30 @@ async function openFreeSets(mode) {
   const history = [...cloudHistory, ...localHistory];
   const availableSets = freeQuestionsCache[mode];
 
+  const filterEl = document.getElementById('sets-filter'); // Grab the filter element
+
   if (Object.keys(availableSets).length === 0) {
     grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:var(--text-light);">Free sets are being updated. Check back soon!</p>';
+    filterEl.style.display = 'none';
     return;
+  }
+
+  // 🚀 NEW: Auto-Extract Unique Tab Names for Free Tests!
+  let uniqueTopics = new Set();
+  Object.keys(availableSets).forEach(setKey => {
+    uniqueTopics.add(availableSets[setKey].desc);
+  });
+
+  // 🚀 NEW: Populate the Dropdown
+  if (uniqueTopics.size > 1) {
+    filterEl.style.display = 'block';
+    let filterHTML = '<option value="all">All Topics</option>';
+    Array.from(uniqueTopics).sort().forEach(t => {
+      filterHTML += `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`;
+    });
+    filterEl.innerHTML = filterHTML;
+  } else {
+    filterEl.style.display = 'none';
   }
 
   Object.keys(availableSets).forEach(setKey => {
@@ -1120,8 +1165,9 @@ async function openFreeSets(mode) {
     const isCompleted = history.some(h => h.name === exactTestName);
     const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
 
+    // 🚀 NEW: Attach data-topic to the card!
     grid.innerHTML += `
-      <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('free_${mode}', '${setKey}')">
+      <div class="test-cat-card" data-topic="${escapeHTML(setObj.desc)}" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('free_${mode}', '${setKey}')">
         ${checkmark}
         <div class="test-cat-icon">🎁</div>
         <h3 style="font-size:1.05rem;">${setKey}</h3>
@@ -1160,25 +1206,47 @@ if(document.getElementById('back-to-cat-btn')) {
   
   const categoryData = allQuestions[cat];
   
+  const filterEl = document.getElementById('sets-filter'); // Grab the filter element
+
   if (!categoryData || Object.keys(categoryData).length === 0) {
     grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:var(--text-light);">No sets available for this topic yet. Please check back later!</p>';
+    filterEl.style.display = 'none';
     return;
   }
 
   const history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
 
+  // 🚀 NEW: Auto-Extract Unique Tab Names!
+  let uniqueTopics = new Set();
+  Object.keys(categoryData).forEach(setKey => {
+    let topic = setKey.includes(' - Set') ? setKey.split(' - Set')[0] : 'General';
+    uniqueTopics.add(topic);
+  });
+
+  // 🚀 NEW: Populate the Dropdown (Only show it if there is more than 1 topic!)
+  if (uniqueTopics.size > 1) {
+    filterEl.style.display = 'block';
+    let filterHTML = '<option value="all">All Topics</option>';
+    Array.from(uniqueTopics).sort().forEach(t => {
+      filterHTML += `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`;
+    });
+    filterEl.innerHTML = filterHTML;
+  } else {
+    filterEl.style.display = 'none';
+  }
+
   Object.keys(categoryData).forEach(setKey => {
     const qCount = categoryData[setKey].length;
-    
-    // Use the perfectly formatted setKey directly
     const displayTitle = setKey;
     const exactTestName = catTitle + " - " + displayTitle;
-    
+    let topic = setKey.includes(' - Set') ? setKey.split(' - Set')[0] : 'General';
+
     const isCompleted = history.some(h => h.name === exactTestName);
     const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
 
+    // 🚀 NEW: Attach data-topic to the card!
     const cardHTML = `
-      <div class="test-cat-card" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('${cat}', '${setKey}')">
+      <div class="test-cat-card" data-topic="${escapeHTML(topic)}" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('${cat}', '${setKey}')">
         ${checkmark}
         <div class="test-cat-icon">📑</div>
         <h3 style="font-size:1.05rem;">${displayTitle}</h3>
@@ -1670,13 +1738,15 @@ function shuffleArray(array) {
 function updateAIBoosterLimitsUI() {
   const today = new Date().toLocaleDateString('en-IN');
   ['paper1', 'sanskrit'].forEach(type => {
-    let limitData = JSON.parse(localStorage.getItem(`ai_booster_limit_${type}`) || `{"date": "${today}", "count": 2}`);
+    // 🚀 DYNAMIC FIX: Uses the Master Switch for the default count!
+    let limitData = JSON.parse(localStorage.getItem(`ai_booster_limit_${type}`) || `{"date": "${today}", "count": ${AI_BOOSTER_DAILY_LIMIT}}`);
+    
     if (limitData.date !== today) {
-      limitData = { date: today, count: 2 }; // Reset if it's a new day
+      limitData = { date: today, count: AI_BOOSTER_DAILY_LIMIT }; // Reset to Master Switch on a new day
       localStorage.setItem(`ai_booster_limit_${type}`, JSON.stringify(limitData));
     }
     const limitEl = document.getElementById(`ai-limit-${type}`);
-    if (limitEl) limitEl.textContent = `Remaining Today: ${limitData.count}/2`;
+    if (limitEl) limitEl.textContent = `Remaining Today: ${limitData.count}/${AI_BOOSTER_DAILY_LIMIT}`;
   });
 }
 
@@ -1735,11 +1805,13 @@ async function generateAIBooster(paperType) {
   // B. Check Daily Limits (Zero-Cost Local Storage)
   const today = new Date().toLocaleDateString('en-IN');
   const limitKey = `ai_booster_limit_${paperType}`;
-  let limitData = JSON.parse(localStorage.getItem(limitKey) || `{"date": "${today}", "count": 2}`);
+  
+  // 🚀 DYNAMIC FIX: Read from the Master Switch!
+  let limitData = JSON.parse(localStorage.getItem(limitKey) || `{"date": "${today}", "count": ${AI_BOOSTER_DAILY_LIMIT}}`);
 
-  if (limitData.date !== today) limitData = { date: today, count: 2 };
+  if (limitData.date !== today) limitData = { date: today, count: AI_BOOSTER_DAILY_LIMIT };
   if (limitData.count <= 0) {
-    showToast("⏳ Daily limit reached! You can generate 2 AI tests per day.");
+    showToast(`⏳ Daily limit reached! You can generate ${AI_BOOSTER_DAILY_LIMIT} AI tests per day.`);
     return;
   }
 
@@ -1756,7 +1828,7 @@ async function generateAIBooster(paperType) {
   
   
 
-  // NEW: Transition to the Neural Engine UI while calculating
+  // NEW: Transition to the AI Engine UI while calculating
   document.getElementById('test-categories').style.display = 'none';
   const setsView = document.getElementById('test-sets-view'); 
   setsView.style.display = 'block';
@@ -1775,7 +1847,7 @@ async function generateAIBooster(paperType) {
         <div class="ai-scan-ring"></div>
         <div class="ai-scan-ring delay-1"></div>
       </div>
-      <h3 class="ai-loading-title">Neural Engine Assembling Test...</h3>
+      <h3 class="ai-loading-title">AI Assembling Test...</h3>
       <div class="ai-loading-steps">
         <div id="ai-step-1" class="ai-step active">Analyzing your weakness areas...</div>
         <div id="ai-step-2" class="ai-step">Extracting targeted questions...</div>
@@ -1802,9 +1874,9 @@ async function generateAIBooster(paperType) {
   let catsToFetch = [...new Set(weakTopics.map(t => t.cat))];
   let fetchPromises = catsToFetch.map(c => fetchQuestions(c));
   
-  // 🚀 LABOR ILLUSION: Force the AI engine to take AT LEAST 5 seconds 
+  // 🚀 LABOR ILLUSION: Force the AI engine to take AT LEAST 4 seconds 
   // so the student can enjoy the animation and trust the calculation!
-  fetchPromises.push(new Promise(resolve => setTimeout(resolve, 5000)));
+  fetchPromises.push(new Promise(resolve => setTimeout(resolve, 4000)));
   
   await Promise.all(fetchPromises);
 
@@ -2601,6 +2673,18 @@ function filterVideos() {
   document.querySelectorAll('#videos-links-grid .video-card').forEach(card => {
     if (selected === 'all' || card.getAttribute('data-topic') === selected) {
       card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+// 🚀 NEW: Filter Mock Tests by Google Sheet Tab Name!
+function filterSets() {
+  const selected = document.getElementById('sets-filter').value;
+  document.querySelectorAll('#sets-grid .test-cat-card').forEach(card => {
+    if (selected === 'all' || card.getAttribute('data-topic') === selected) {
+      card.style.display = ''; // Uses flex because your cards use flexbox internally
     } else {
       card.style.display = 'none';
     }

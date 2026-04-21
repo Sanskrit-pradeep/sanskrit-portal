@@ -441,7 +441,7 @@
             <h3 style="color: #9C27B0; font-size: 1.05rem;">AI Booster: Paper 1</h3>
             <p style="font-size: 0.8rem; color: var(--text-mid);">30 Custom questions targeting your weakest topics.</p>
             <div style="margin-top: 14px;">
-              <span id="ai-limit-paper1" style="background: #9C27B0; color: white; font-size: 0.75rem; padding: 4px 12px; border-radius: 50px; font-weight: 700;">Remaining Today: 2/2</span>
+              <span id="ai-limit-paper1" style="background: #9C27B0; color: white; font-size: 0.75rem; padding: 4px 12px; border-radius: 50px; font-weight: 700;">Remaining Today: --/--</span>
             </div>
           </div>
 
@@ -450,7 +450,7 @@
             <h3 style="color: #1565C0; font-size: 1.05rem;">AI Booster: Sanskrit</h3>
             <p style="font-size: 0.8rem; color: var(--text-mid);">30 Custom questions targeting your weakest topics.</p>
             <div style="margin-top: 14px;">
-              <span id="ai-limit-sanskrit" style="background: #1565C0; color: white; font-size: 0.75rem; padding: 4px 12px; border-radius: 50px; font-weight: 700;">Remaining Today: 2/2</span>
+              <span id="ai-limit-sanskrit" style="background: #1565C0; color: white; font-size: 0.75rem; padding: 4px 12px; border-radius: 50px; font-weight: 700;">Remaining Today: --/--</span>
             </div>
           </div>
         </div>
@@ -1143,9 +1143,11 @@
       </div>
       <p style="text-align:center; color:var(--text-mid); margin: 16px 0 24px;">New sets are added every week. Completed sets are marked with a green checkmark.</p>
       
-      
-
-
+      <div style="text-align: center; margin-bottom: 24px;">
+        <select id="sets-filter" class="form-input" style="max-width:300px; display:none; margin: 0 auto;" onchange="filterSets()">
+          <option value="all">All Topics</option>
+        </select>
+      </div>
 
       <div class="test-categories-grid" id="sets-grid">
         </div>
