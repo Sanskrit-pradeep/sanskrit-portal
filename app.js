@@ -990,6 +990,10 @@ async function showSets(cat) {
   window.scrollTo(0, 0);
   setsView.scrollTop = 0; // 🚀 UX FIX: Always start grid at the top!
 
+  // 🚀 FIX: Ensure the descriptive text is visible for normal tests!
+  const setsDesc = document.querySelector('#test-sets-view p');
+  if (setsDesc) setsDesc.style.display = 'block';
+
   // INJECT THE SKELETONS
   const grid = document.getElementById('sets-grid');
   grid.innerHTML = getSkeletonGrid(6, 'test');
@@ -1019,6 +1023,10 @@ async function openFreeSets(mode) {
   setsView.style.display = 'block';
   window.scrollTo(0, 0);
   setsView.scrollTop = 0; // 🚀 UX FIX: Always start grid at the top!
+
+  // 🚀 FIX: Ensure the descriptive text is visible for normal tests!
+  const setsDesc = document.querySelector('#test-sets-view p');
+  if (setsDesc) setsDesc.style.display = 'block';
 
   // Configuration for the 4 Free Modes
   const modeConfigs = {
@@ -1139,6 +1147,10 @@ if(document.getElementById('back-to-cat-btn')) {
   const setsView = document.getElementById('test-sets-view');
   setsView.style.display = 'block';
   window.scrollTo(0, 0);
+
+  // 🚀 FIX: Ensure the descriptive text is visible for normal tests!
+  const setsDesc = document.querySelector('#test-sets-view p');
+  if (setsDesc) setsDesc.style.display = 'block';
   
   const catTitle = catNames[cat] || cat;
   document.getElementById('sets-category-title').textContent = catTitle + " — Practice Sets";
@@ -1744,24 +1756,56 @@ async function generateAIBooster(paperType) {
   
   
 
-  // NEW: Transition to the skeleton grid while calculating
+  // NEW: Transition to the Neural Engine UI while calculating
   document.getElementById('test-categories').style.display = 'none';
-  const setsView = document.getElementById('test-sets-view'); // 🚀 CRITICAL FIX: Define the variable first!
+  const setsView = document.getElementById('test-sets-view'); 
   setsView.style.display = 'block';
-  setsView.scrollTop = 0; // 🚀 UX FIX: Always start grid at the top!
-  document.getElementById('sets-category-title').textContent = "🧠 AI Assembling Custom Test...";
+  setsView.scrollTop = 0; 
+  document.getElementById('sets-category-title').textContent = "🔒 System Override: AI Active";
   
-  // Inject 6 skeleton blocks rapidly into the grid
-  let skelHTML = '';
-  for(let i=0; i<6; i++) {
-    skelHTML += `<div class="skel-card"><div class="skeleton skel-icon"></div><div class="skeleton skel-title"></div><div class="skeleton skel-text"></div><div class="skeleton skel-text-short"></div></div>`;
-  }
-  document.getElementById('sets-grid').innerHTML = skelHTML;
+  // 🚀 UX FIX: Hide the "New sets added..." text for AI tests!
+  const setsDesc = document.querySelector('#test-sets-view p');
+  if (setsDesc) setsDesc.style.display = 'none';
+  
+  // 🚀 CUSTOM AI LOADER: Injects the animated brain and checklist!
+  document.getElementById('sets-grid').innerHTML = `
+    <div class="ai-loader-container">
+      <div class="ai-core-scanner">
+        <div class="ai-brain-icon">🧠</div>
+        <div class="ai-scan-ring"></div>
+        <div class="ai-scan-ring delay-1"></div>
+      </div>
+      <h3 class="ai-loading-title">Neural Engine Assembling Test...</h3>
+      <div class="ai-loading-steps">
+        <div id="ai-step-1" class="ai-step active">Analyzing your weakness areas...</div>
+        <div id="ai-step-2" class="ai-step">Extracting targeted questions...</div>
+        <div id="ai-step-3" class="ai-step">Applying cognitive shuffle...</div>
+      </div>
+    </div>
+  `;
   window.scrollTo(0, 0);
+
+  // 🪄 Visual Magic: Step through the checklist while Firebase downloads the data!
+  setTimeout(() => {
+    const s1 = document.getElementById('ai-step-1');
+    const s2 = document.getElementById('ai-step-2');
+    if(s1 && s2) { s1.className = "ai-step done"; s2.className = "ai-step active"; }
+  }, 800);
+  
+  setTimeout(() => {
+    const s2 = document.getElementById('ai-step-2');
+    const s3 = document.getElementById('ai-step-3');
+    if(s2 && s3) { s2.className = "ai-step done"; s3.className = "ai-step active"; }
+  }, 1800);
 
   // Start the database download
   let catsToFetch = [...new Set(weakTopics.map(t => t.cat))];
   let fetchPromises = catsToFetch.map(c => fetchQuestions(c));
+  
+  // 🚀 LABOR ILLUSION: Force the AI engine to take AT LEAST 7 seconds 
+  // so the student can enjoy the animation and trust the calculation!
+  fetchPromises.push(new Promise(resolve => setTimeout(resolve, 7000)));
+  
   await Promise.all(fetchPromises);
 
   // E. Assemble the Custom Test
