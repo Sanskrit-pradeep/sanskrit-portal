@@ -1,12 +1,12 @@
 [
   {
-    "id": "2026-04-20T17:58:39.579Z",
-    "title": "home",
-    "desc": "dsfsg",
-    "type": "update",
-    "expiresAt": "2026-04-30",
-    "btnText": "",
-    "btnLink": ""
+    "id": "2026-04-21T02:29:04.412Z",
+    "title": "Discount on Test Pass",
+    "desc": "Get 20% discount on the purchase of pass.",
+    "type": "offer",
+    "expiresAt": "2026-04-29",
+    "btnText": "Buy now",
+    "btnLink": "https://fastdl.app/photo"
   },
   {
     "id": "2026-04-20T17:56:46.486Z",
