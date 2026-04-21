@@ -26,8 +26,6 @@ let isSignUpMode = false;
 // 4. The "Master Launch Switch" (Change this date to your actual Launch Day + 7 days)
 const LAUNCH_PROMO_END_DATE = new Date("2030-05-01T00:00:00Z"); 
 
-// 5. THE MASTER ADMIN EMAIL
-const ADMIN_EMAIL = "enquiry.sanskritvartika@gmail.com";
 
 // 5A. MASTER WHATSAPP NUMBER (Centralized)
 const WHATSAPP_NUMBER = "918172063129";
@@ -299,12 +297,7 @@ auth.onAuthStateChanged(async (user) => {
         // 2. Update the Navbar with their real name
         updateNavUI(user, currentUser.dbData.name);
         
-        // 3. Unlock Admin Button if they are the boss
-        if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-          const adminBtn = document.getElementById('nav-admin-link');
-          if (adminBtn) adminBtn.style.display = 'block';
-        }
-
+        
         // 4. Update Lock Icons on Mock Tests
         updateTestCardLocks();
 
@@ -679,7 +672,10 @@ async function fetchQuestions(cat) {
         const tabName = (typeof item === 'string') ? null : item.tabName;
 
         return fetch(url, { signal: controller.signal })
-          .then(res => res.text()) // Get raw text (Gibberish or JSON)
+          .then(res => {
+            if (!res.ok) throw new Error("HTTP Error " + res.status); // Protects against 404 missing files
+            return res.text();
+          }) // Get raw text (Gibberish or JSON)
           .then(textData => {
             let fileData;
             
@@ -702,6 +698,11 @@ async function fetchQuestions(cat) {
               });
             }
             return fileData;
+          })
+          .catch(err => {
+            // SAFETY NET: If one file breaks, log the error but don't crash the whole app!
+            console.error(`Failed to load ${tabName}:`, err);
+            return []; // Return an empty array so Promise.all keeps running
           });
       });
       
@@ -1666,9 +1667,20 @@ async function generateAIBooster(paperType) {
 
   // D. "Smart Fetch" - Only download the Google Sheets we actually need!
   
+  // --- NEW FIX: DOM RELOCATION SAFEGUARD FOR AI BOOSTER ---
+  const setsView = document.getElementById('test-sets-view');
+  const testInterface = document.getElementById('test-interface');
+  const testResults = document.getElementById('test-results');
+  
+  // Move the test screens to whatever page the student is currently looking at!
+  const activePageSection = document.getElementById('page-' + currentPage).querySelector('.section');
+  activePageSection.appendChild(setsView);
+  activePageSection.appendChild(testInterface);
+  activePageSection.appendChild(testResults);
+  // --------------------------------------------------------
+
   // NEW: Transition to the skeleton grid while calculating
   document.getElementById('test-categories').style.display = 'none';
-  const setsView = document.getElementById('test-sets-view');
   setsView.style.display = 'block';
   document.getElementById('sets-category-title').textContent = "🧠 AI Assembling Custom Test...";
   
@@ -1891,9 +1903,10 @@ async function loadVideosFromSheet() {
 
 
 
-// --- HELPER: Extracts the 11-character video ID from any YouTube link ---
+// --- HELPER: Extracts the 11-character video ID from any YouTube link (Upgraded for Shorts) ---
 function getYouTubeID(url) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  // FIXED: Added "shorts\/" to the regex so YouTube Shorts thumbnails work perfectly!
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 }
@@ -2211,30 +2224,7 @@ function loadDashboard() {
   document.getElementById('display-name').textContent = currentUser.dbData.name || "Student";
 
 
-  // --- FIXED: SECURE DYNAMIC INJECTION FOR ADMIN SANDBOX ---
-  const sandboxContainer = document.getElementById('admin-sandbox-container');
-  if (sandboxContainer) {
-    if (currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      sandboxContainer.innerHTML = `
-        <div style="background: #FFF3E0; border: 2px dashed #FF9800; border-radius: var(--radius); padding: 20px; margin-bottom: 24px; text-align: center;">
-          <h3 style="color: #E65100; margin-bottom: 12px; font-size: 1rem;">🛠️ Developer Test Switch</h3>
-          <p style="font-size: 0.8rem; color: var(--text-mid); margin-bottom: 16px;">Instantly change your own account status to test the UI locks.</p>
-          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <button class="btn btn-sm" style="background: #9E9E9E; color: white;" onclick="setTestState('free')">Set Free</button>
-            <button class="btn btn-sm" style="background: #9C27B0; color: white;" onclick="setTestState('combo')">Set Combo Pass</button>
-            <button class="btn btn-sm" style="background: #E65100; color: white;" onclick="setTestState('batch')">Set Batch Pass</button>
-            <button class="btn btn-sm" style="background: #1565C0; color: white;" onclick="setTestState('sanskrit')">Set Sanskrit Pass</button>
-            <button class="btn btn-sm" style="background: #2E7D32; color: white;" onclick="setTestState('general')">Set 1st Paper Pass</button>
-            <button class="btn btn-sm" style="background: #F44336; color: white;" onclick="setTestState('expired')">Set Expired</button>
-          </div>
-        </div>
-      `;
-    } else {
-      // For normal students, ensure the container remains completely empty
-      sandboxContainer.innerHTML = ''; 
-    }
-  }
-
+  
   // --- NEW: RENDER MULTI-PASS WALLET ON DASHBOARD ---
   const vipBadgeContainer = document.getElementById('student-vip-badge');
   if (vipBadgeContainer) {
@@ -2824,353 +2814,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ==========================================
-// === UPGRADED ADMIN DASHBOARD ENGINE (Search/Sort/Bulk) ===
-// ==========================================
-let adminUserList = []; // Master list from Firebase
-let currentFilteredUsers = [];
-
-// 1. Fetch data from Firebase ONCE
-async function loadAdminDashboard() {
-  if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    document.getElementById('admin-users-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">⚠️ Access Denied.</td></tr>';
-    return;
-  }
-
-  document.getElementById('admin-users-body').innerHTML = '<tr><td colspan="7" style="text-align: center;">Fetching data from Cloud...</td></tr>';
-
-  try {
-    const fetchType = document.getElementById('admin-fetch-type').value;
-    let query = db.collection("users");
-
-    // Firebase Read Optimization:
-    if (fetchType === 'basic') {
-      // Direct query for Basic Access (Costs exactly 1 read per basic user!)
-      query = query.where('accessLevel', '==', 'basic');
-    } else if (fetchType !== 'all') {
-      // Query for specific passes
-      query = query.where(fetchType, '>', ''); 
-    }
-
-    const snapshot = await query.get();
-    adminUserList = [];
-    
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      data.uid = doc.id;
-      
-      const passes = data.passes || {};
-      const now = new Date();
-      data.computedStatus = "free";
-      let hasActive = false;
-      let hasExpired = false;
-
-      ['combo', 'batch', 'sanskrit', 'general'].forEach(p => {
-        if (passes[p]) {
-          if (new Date(passes[p]) > now) hasActive = true;
-          else hasExpired = true;
-        }
-      });
-
-      if (hasActive) data.computedStatus = "vip"; 
-      else if (hasExpired) data.computedStatus = "expired";
-      
-      adminUserList.push(data);
-    });
-
-    filterAndRenderAdminTable(); 
-  } catch (error) {
-    document.getElementById('admin-users-body').innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
-  }
-}
-
-// 2. The Universal Search, Filter, and Sort Engine
-function filterAndRenderAdminTable() {
-  const searchQuery = document.getElementById('admin-search').value.toLowerCase();
-  const statusFilter = document.getElementById('admin-filter-status').value;
-  const sortBy = document.getElementById('admin-sort-by').value;
-
-  const now = new Date();
-
-  // A. Filter the Data
-  let filteredList = adminUserList.filter(user => {
-    const nameStr = (user.name || "").toLowerCase();
-    const emailStr = (user.email || "").toLowerCase();
-    const waStr = (user.whatsapp || "").toLowerCase();
-    const matchesSearch = nameStr.includes(searchQuery) || emailStr.includes(searchQuery) || waStr.includes(searchQuery);
-    
-    let matchesStatus = false;
-    if (statusFilter === "all") matchesStatus = true;
-    // Fix: Treat both originally free and expired users simply as "Basic Access"
-    else if (statusFilter === "free") matchesStatus = (user.computedStatus === "free" || user.computedStatus === "expired");
-    else {
-      // Check for specific passes (combo, batch, etc.)
-      matchesStatus = (user.passes && user.passes[statusFilter] && new Date(user.passes[statusFilter]) > now);
-    }
-
-    return matchesSearch && matchesStatus;
-  });
-
-  // B. Sort the Data
-  filteredList.sort((a, b) => {
-    if (sortBy === "newest") return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    if (sortBy === "oldest") return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-  });
-
-  currentFilteredUsers = filteredList;
-
-  // C. Render to Screen
-  document.getElementById('admin-user-count').textContent = filteredList.length;
-  const tbody = document.getElementById('admin-users-body');
-  
-  if (filteredList.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-light);">No students match this criteria.</td></tr>';
-    return;
-  }
-
-  let html = '';
-  filteredList.forEach(data => {
-    const dateJoined = data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-IN') : 'Unknown';
-    let vipBadge = '', validityText = '';
-
-    // If they have NO active passes (formerly free/expired), they are Basic Access
-    if (data.computedStatus === "free" || data.computedStatus === "expired") {
-      vipBadge = '<span style="background: #E0E0E0; color: #757575; padding: 4px 8px; border-radius: 50px; font-size: 0.75rem; font-weight: bold;">Basic Access</span>';
-      validityText = '<span style="color: #9E9E9E;">—</span>';
-    } else {
-      // Generate tags and exact validity dates for Premium users!
-      let activeTags = [];
-      let validityHTML = '';
-      
-      ['combo', 'batch', 'sanskrit', 'general'].forEach(p => {
-        if (data.passes && data.passes[p]) {
-          const expDate = new Date(data.passes[p]);
-          if (expDate > now) {
-            activeTags.push(p.toUpperCase());
-            validityHTML += `<div style="font-size:0.75rem; color:#2E7D32; margin-bottom:2px;"><b>${p.toUpperCase()}:</b> ${expDate.toLocaleDateString('en-IN')}</div>`;
-          }
-        }
-      });
-      
-      vipBadge = `<span style="background: #FFF3E0; color: #E65100; padding: 4px 8px; border-radius: 50px; font-size: 0.7rem; font-weight: bold;">${activeTags.join(', ')}</span>`;
-      validityText = validityHTML;
-    }
-
-    let waLink = data.whatsapp ? `<a href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}" target="_blank" style="color: #25D366; font-weight: bold; text-decoration: underline;">${data.whatsapp}</a>` : '<span style="color: #ccc;">—</span>';
-
-    html += `
-      <tr style="border-bottom: 1px solid var(--cream-dark); background: var(--white);">
-        <td style="padding: 14px 16px; font-weight: 600; color: var(--brown);">${escapeHTML(data.name || 'Unknown')}</td>
-        <td style="padding: 14px 16px; color: var(--text-mid); font-size: 0.85rem;">${escapeHTML(data.email)}</td>
-        <td style="padding: 14px 16px;">${waLink}</td>
-        <td style="padding: 14px 16px; color: var(--text-light); font-size: 0.85rem;">${dateJoined}</td>
-        <td style="padding: 14px 16px;">${vipBadge}</td>
-        <td style="padding: 14px 16px;">${validityText}</td>
-        <td style="padding: 14px 16px; text-align: right;">
-          <button class="btn btn-sm btn-outline" style="padding: 4px 12px;" onclick="openAdminEdit('${data.uid}')">⚙️ Manage</button>
-        </td>
-      </tr>
-    `;
-  });
-  tbody.innerHTML = html;
-}
-
-// 3. Individual Management
-function openAdminEdit(uid) {
-  const user = adminUserList.find(u => u.uid === uid);
-  if (!user) return;
-
-  document.getElementById('admin-edit-name').textContent = `${user.name} (${user.email})`;
-
-  const p = user.passes || {};
-  const formatD = (iso) => iso ? new Date(iso).toISOString().split('T')[0] : '';
-  
-  // Populate the calendar inputs if a date exists
-  document.getElementById('admin-pass-combo').value = formatD(p.combo);
-  document.getElementById('admin-pass-batch').value = formatD(p.batch);
-  document.getElementById('admin-pass-sanskrit').value = formatD(p.sanskrit);
-  document.getElementById('admin-pass-general').value = formatD(p.general);
-
-  document.getElementById('admin-edit-save-btn').onclick = () => saveAdminEdit(uid);
-  document.getElementById('admin-edit-modal').style.display = 'flex';
-}
-
-async function saveAdminEdit(uid) {
-  const btn = document.getElementById('admin-edit-save-btn');
-  btn.textContent = "Saving..."; btn.disabled = true;
-
-  const getIso = (val) => val ? new Date(val).toISOString() : null;
-  
-  const newPasses = {
-    combo: getIso(document.getElementById('admin-pass-combo').value),
-    batch: getIso(document.getElementById('admin-pass-batch').value),
-    sanskrit: getIso(document.getElementById('admin-pass-sanskrit').value),
-    general: getIso(document.getElementById('admin-pass-general').value)
-  };
-
-  // Calculate the new Access Level based on the dates you just typed
-  let hasActive = false;
-  const now = new Date();
-  Object.values(newPasses).forEach(iso => {
-    if (iso && new Date(iso) > now) hasActive = true;
-  });
-  
-  const newAccessLevel = hasActive ? "premium" : "basic";
-
-  try {
-    await db.collection("users").doc(uid).update({ 
-      passes: newPasses,
-      accessLevel: newAccessLevel
-    });
-    showToast("✅ Student passes updated!");
-    document.getElementById('admin-edit-modal').style.display = 'none';
-    loadAdminDashboard(); 
-  } catch (error) { alert(error.message); } 
-  finally { btn.textContent = "Save Passes"; btn.disabled = false; }
-}
-
-// 4. BULK MANAGE SCRIPT (Multi-Pass Upgrade)
-async function executeBulkUpdate() {
-  const targetGroup = document.getElementById('bulk-target-group').value;
-  const targetPass = document.getElementById('bulk-pass-type').value;
-  const daysToAdd = parseInt(document.getElementById('bulk-days').value);
-  
-  if (!daysToAdd || daysToAdd <= 0) {
-    alert("Please enter a valid number of days.");
-    return;
-  }
-
-  const usersToUpdate = adminUserList.filter(u => targetGroup === "all" || u.computedStatus === targetGroup);
-  
-  if (usersToUpdate.length === 0) {
-    alert("No users found in this category.");
-    return;
-  }
-
-  if (!confirm(`Are you sure you want to add ${daysToAdd} days of ${targetPass.toUpperCase()} to ${usersToUpdate.length} students?`)) return;
-
-  const btn = document.getElementById('bulk-execute-btn');
-  btn.textContent = "Processing..."; btn.disabled = true;
-
-  try {
-    const chunkSize = 200;
-    for (let i = 0; i < usersToUpdate.length; i += chunkSize) {
-      const chunk = usersToUpdate.slice(i, i + chunkSize);
-      const batch = db.batch();
-
-      chunk.forEach(user => {
-        const userRef = db.collection("users").doc(user.uid);
-        let currentPasses = user.passes || {};
-        let newExpiry = new Date(); 
-        
-        // If they already have this specific pass, add to the existing date
-        if (currentPasses[targetPass] && new Date(currentPasses[targetPass]) > new Date()) {
-          newExpiry = new Date(currentPasses[targetPass]);
-        }
-        
-        newExpiry.setDate(newExpiry.getDate() + daysToAdd);
-        currentPasses[targetPass] = newExpiry.toISOString();
-
-        // Since we just added days, they are guaranteed to be premium!
-        batch.update(userRef, { passes: currentPasses, accessLevel: 'premium' });
-      });
-
-      await batch.commit(); 
-    }
-
-    showToast(`✅ Successfully updated ${usersToUpdate.length} students!`);
-    document.getElementById('bulk-manage-modal').style.display = 'none';
-    document.getElementById('bulk-days').value = '';
-    loadAdminDashboard(); 
-    
-  } catch (error) { alert("Error: " + error.message); } 
-  finally { btn.textContent = "Execute Update"; btn.disabled = false; }
-}
-
-// ==========================================
-// === EXPORT TO CSV ENGINE ===
-// ==========================================
-function exportToCSV() {
-  if (!currentFilteredUsers || currentFilteredUsers.length === 0) {
-    showToast("⚠️ No students found to export!");
-    return;
-  }
-
-  // 1. Create the CSV Column Headers
-  let csvContent = "Name,Email,WhatsApp,Date Joined,Param Status,Validity Date\n";
-
-  // 2. Loop through the currently filtered students and add their data
-  currentFilteredUsers.forEach(user => {
-    const name = (user.name || "Unknown").replace(/,/g, ""); 
-    const email = (user.email || "").replace(/,/g, "");
-    const whatsapp = (user.whatsapp || "").replace(/,/g, "");
-    const joined = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : "Unknown";
-    
-    // NEW: Clean Status without "Expired"
-    let status = (user.computedStatus === "vip") ? "Active Passes" : "Basic Access";
-
-    // NEW: Extract all active pass dates for the CSV column
-    let activeTags = [];
-    const now = new Date();
-    ['combo', 'batch', 'sanskrit', 'general'].forEach(p => {
-      if (user.passes && user.passes[p] && new Date(user.passes[p]) > now) {
-        activeTags.push(`${p.toUpperCase()}: ${new Date(user.passes[p]).toLocaleDateString('en-IN')}`);
-      }
-    });
-    
-    const validity = activeTags.length > 0 ? activeTags.join(' | ') : "N/A";
-
-    csvContent += `${name},${email},${whatsapp},${joined},${status},${validity}\n`;
-  });
-
-  // 3. Force the Browser to Download the File
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  
-  // Name the file dynamically based on today's date
-  const today = new Date().toISOString().split('T')[0];
-  link.setAttribute("href", url);
-  link.setAttribute("download", `Sanskrit_Vartika_Students_${today}.csv`);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  showToast("✅ CSV Exported Successfully!");
-}
-
-// ==========================================
-// === DEVELOPER SANDBOX LOGIC ===
-// ==========================================
-async function setTestState(state) {
-  if (!currentUser) return;
-  
-  let updatedPasses = { batch: null, sanskrit: null, general: null, combo: null };
-  let d = new Date();
-  d.setDate(d.getDate() + FREE_TRIAL_DAYS);
-  
-  if (state === 'combo') updatedPasses.combo = d.toISOString();
-  else if (state === 'batch') updatedPasses.batch = d.toISOString();
-  else if (state === 'sanskrit') updatedPasses.sanskrit = d.toISOString();
-  else if (state === 'general') updatedPasses.general = d.toISOString();
-  else if (state === 'expired') {
-    d.setDate(d.getDate() - 10); 
-    updatedPasses.combo = d.toISOString();
-  }
-  // 'free' state leaves all passes as null
-  
-  try {
-    await db.collection("users").doc(currentUser.uid).update({ passes: updatedPasses });
-    showToast(`✅ Test State Applied: ${state.toUpperCase()}`);
-    setTimeout(() => window.location.reload(), 800); // Reload to reflect changes instantly
-  } catch(error) {
-    alert("Error changing test state: " + error.message);
-  }
-}
-
-
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -3232,115 +2875,72 @@ async function submitReport() {
   }
 }
 
-// ==========================================
-// === ADMIN: FETCH & RESOLVE REPORTS ===
-// ==========================================
-async function loadAdminReports() {
-  const tbody = document.getElementById('admin-reports-body');
-  if (!tbody) return;
-
-  if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">⚠️ Access Denied.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Fetching reports...</td></tr>';
-
-  try {
-    const snapshot = await db.collection("reported_errors").orderBy("timestamp", "desc").get();
-    document.getElementById('admin-reports-count').textContent = snapshot.size;
-
-    if (snapshot.empty) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-light);">No reported errors! 🎉</td></tr>';
-      return;
-    }
-
-    let html = '';
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString('en-IN') : 'Just now';
-      
-      html += `
-        <tr style="border-bottom: 1px solid var(--cream-dark);">
-          <td style="padding: 14px 16px; max-width: 300px;">
-            <strong style="color: var(--brown); font-size: 0.85rem;">${data.testName}</strong><br>
-            <span style="font-family: var(--font-skt); font-size: 0.95rem;">${escapeHTML(data.questionText)}</span>
-          </td>
-          <td style="padding: 14px 16px;">
-            <span style="background: #FFEBEE; color: #D32F2F; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">${data.reason}</span><br>
-            <span style="font-size: 0.85rem; color: var(--text-mid); display: block; margin-top: 4px;">${escapeHTML(data.comment || 'No additional comment')}</span>
-          </td>
-          <td style="padding: 14px 16px; font-size: 0.85rem; color: var(--text-light);">${data.reportedBy}</td>
-          <td style="padding: 14px 16px; font-size: 0.85rem; color: var(--text-light);">${date}</td>
-          <td style="padding: 14px 16px; text-align: right;">
-            <button class="btn btn-sm" style="background: #4CAF50; color: white; padding: 6px 12px;" onclick="resolveReport('${doc.id}')">✅ Resolve</button>
-          </td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-  } catch (error) {
-    console.error("Error fetching reports:", error);
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
-  }
-}
-
-async function resolveReport(reportId) {
-  if (!confirm("Are you sure you want to resolve this? Make sure you fixed the error in your Google Sheet first!")) return;
-  
-  try {
-    await db.collection("reported_errors").doc(reportId).delete();
-    showToast("✅ Report resolved and cleared.");
-    loadAdminReports(); // Automatically refresh the table
-  } catch (error) {
-    alert("Error resolving report: " + error.message);
-  }
-}
 
 // ==========================================
-// === LAG-FREE GOOGLE SHEETS NOTIFICATIONS ===
+// === 📡 GITHUB CDN NOTIFICATIONS ENGINE ===
 // ==========================================
 
-// ⚠️ PASTE YOUR GOOGLE SCRIPT WEB APP URL HERE:
-const NOTIFICATION_API_URL = "https://script.google.com/macros/s/AKfycbwvyI0ArlPcqoD-WQG0Pm2O1OHf_uwYr_PQbS7rc-2q9HvwlOYFjXBl-W_3SbQ20UX3/exec"; 
-
+const GITHUB_NOTIFICATIONS_URL = "https://raw.githubusercontent.com/Sanskrit-pradeep/sanskrit-portal/main/notifications.json";
 let globalAnnouncements = [];
 
-// 1. Run this immediately when the dashboard loads
-async function initializeNotifications() {
-  // A. Load instantly from cache (0 lag)
-  const cached = localStorage.getItem('vartika_notifications');
-  if (cached) {
-    globalAnnouncements = JSON.parse(cached);
-    checkRedDot();
-  }
+// Advanced Relative Time Calculator (e.g., "5 mins ago", "Yesterday")
+function timeAgo(dateString) {
+  const now = new Date();
+  const past = new Date(dateString);
+  if (isNaN(past.getTime())) return dateString; // Fallback for bad data
 
-  // B. Silently fetch from Google Sheets in the background
+  const diffInSeconds = Math.floor((now - past) / 1000);
+  if (diffInSeconds < 60) return "Just now";
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} min${diffInMinutes > 1 ? 's' : ''} ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hr${diffInHours > 1 ? 's' : ''} ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  
+  // Older than a week? Show the exact date
+  return past.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// 1. Fetch & Auto-Expire Logic (Run when dashboard loads)
+async function initializeNotifications() {
   try {
-    const response = await fetch(NOTIFICATION_API_URL);
-    const freshData = await response.json();
+    // ?t=time bypasses the browser cache so students always see immediate updates
+    const response = await fetch(GITHUB_NOTIFICATIONS_URL + "?t=" + new Date().getTime());
+    if (!response.ok) throw new Error("Failed to load notifications");
     
-    if (freshData && freshData.length > 0) {
-      globalAnnouncements = freshData;
-      // Save the fresh data to cache for next time
-      localStorage.setItem('vartika_notifications', JSON.stringify(globalAnnouncements));
-      checkRedDot();
-    }
+    let rawData = await response.json();
+    const now = new Date();
+    
+    // Filter out expired notifications automatically!
+    globalAnnouncements = rawData.filter(notif => {
+      if (!notif.expiresAt) return true; // Keep if no expiry is set
+      return new Date(notif.expiresAt) > now;
+    });
+
+    checkRedDot();
   } catch (error) {
-    console.error("Silent notification sync failed:", error);
+    console.error("GitHub notification sync failed:", error);
   }
 }
 
-// 2. Logic to show/hide the Red Dot
+// 2. Logic to show/hide the Red Dot (Zero Firebase Reads!)
 function checkRedDot() {
-  if (globalAnnouncements.length === 0) return;
+  const bellDot = document.getElementById('bell-dot');
+  if (!bellDot || globalAnnouncements.length === 0) return;
   
-  // We use the Title + Date of the newest item as its unique ID
-  const latestId = globalAnnouncements[0].title + globalAnnouncements[0].date;
-  const lastReadId = localStorage.getItem('vartika_last_read_id');
+  // Use the exact timestamp of the newest post as the Unique ID
+  const newestNotifTime = globalAnnouncements[0].id; 
+  const lastReadTimestamp = localStorage.getItem('vartika_last_read_notif') || "1970-01-01T00:00:00.000Z";
   
-  if (latestId !== lastReadId) {
-    document.getElementById('bell-dot').style.display = 'block';
+  // If the newest post is newer than the last time they opened the bell, show the dot!
+  if (new Date(newestNotifTime) > new Date(lastReadTimestamp)) {
+    bellDot.style.display = 'block';
+  } else {
+    bellDot.style.display = 'none';
   }
 }
 
@@ -3351,25 +2951,42 @@ function openNotifications() {
   feed.innerHTML = '';
 
   if (globalAnnouncements.length === 0) {
-    feed.innerHTML = '<p style="text-align: center; color: #A1887F;">No recent announcements.</p>';
+    feed.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 30px;">📭 No recent announcements.</p>';
     return;
   }
 
-  // Hide the red dot and remember that they read the newest item
-  const latestId = globalAnnouncements[0].title + globalAnnouncements[0].date;
-  localStorage.setItem('vartika_last_read_id', latestId);
+  // Hide the red dot and save the timestamp so it stays hidden
+  const newestNotifTime = globalAnnouncements[0].id;
+  localStorage.setItem('vartika_last_read_notif', newestNotifTime);
   document.getElementById('bell-dot').style.display = 'none';
 
-  // Build the "Soft & Elegant" HTML
-  globalAnnouncements.forEach(ann => {
-    const linkHtml = ann.link ? `<a href="${escapeHTML(ann.link)}" target="_blank" class="elegant-notify-link">View Details</a>` : '';
+  // Priority color tags
+  const tagStyles = {
+    'update': 'background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9;',
+    'offer': 'background: #FFF3E0; color: #E65100; border: 1px solid #FFE0B2;',
+    'alert': 'background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2;'
+  };
+
+  // Build the beautiful UI feed
+  globalAnnouncements.forEach(notif => {
+    const style = tagStyles[notif.type] || tagStyles['update'];
+    const displayTime = timeAgo(notif.id);
     
+    // Action Button Logic
+    let btnHtml = '';
+    if (notif.btnText && notif.btnLink) {
+      btnHtml = `<a href="${escapeHTML(notif.btnLink)}" target="_blank" class="btn btn-sm" style="background: var(--saffron); color: white; display: inline-block; margin-top: 10px; text-decoration: none; font-size: 0.8rem; padding: 6px 14px; border-radius: 4px;">${escapeHTML(notif.btnText)}</a>`;
+    }
+
     feed.innerHTML += `
-      <div class="elegant-notify-card">
-        <h4 class="elegant-notify-title">${escapeHTML(ann.title)}</h4>
-        <p class="elegant-notify-msg">${escapeHTML(ann.message)}</p>
-        ${linkHtml}
-        <div class="elegant-notify-date">${escapeHTML(timeAgo(ann.date))}</div>
+      <div style="padding: 16px; border: 1px solid #eee; position: relative; background: #fff; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="font-size:0.65rem; padding:4px 10px; border-radius:50px; font-weight:bold; text-transform:uppercase; ${style}">${notif.type || 'Update'}</span>
+          <span style="font-size:0.75rem; color:#9E9E9E; font-weight: 500;">🕒 ${displayTime}</span>
+        </div>
+        <h4 style="color: var(--brown); margin-bottom: 6px; font-size: 1rem; line-height: 1.3;">${escapeHTML(notif.title)}</h4>
+        <p style="font-size: 0.85rem; color: var(--text-mid); white-space: pre-wrap; line-height: 1.5;">${escapeHTML(notif.desc)}</p>
+        ${btnHtml}
       </div>
     `;
   });
