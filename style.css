@@ -1643,3 +1643,19 @@ body.test-mode-active .test-overlay-system {
   0% { transform: rotate(-15deg); }
   100% { transform: rotate(15deg); }
 }
+
+/* ==========================================
+   === 📈 ANALYTICS MINI-TABS ===
+   ========================================== */
+.analytics-tabs {
+  display: flex; gap: 4px; background: rgba(0,0,0,0.04); 
+  padding: 4px; border-radius: 50px;
+}
+.a-tab {
+  padding: 6px 16px; border-radius: 50px; border: none; background: transparent; 
+  font-size: 0.8rem; font-weight: 600; color: var(--text-mid); cursor: pointer; transition: 0.2s;
+}
+.a-tab.active {
+  background: var(--white); color: var(--saffron); 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}

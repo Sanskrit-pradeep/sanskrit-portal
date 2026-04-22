@@ -792,9 +792,17 @@
     </div>
 
     <div style="margin-top:16px; margin-bottom: 24px;" id="analytics-section">
-      <h3 style="color:var(--brown);margin-bottom:16px;font-size:1.05rem;">📈 Subject-Wise Performance</h3>
-      <div id="analytics-container" style="background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--cream-dark);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+        <h3 style="color:var(--brown); font-size:1.05rem; margin: 0;">📈 Performance Analysis</h3>
+        <div class="analytics-tabs">
+          <button class="a-tab active" onclick="switchAnalytics('paper1')">Paper 1</button>
+          <button class="a-tab" onclick="switchAnalytics('sanskrit')">Sanskrit</button>
         </div>
+      </div>
+      <div style="background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--cream-dark);">
+        <div id="analytics-paper1"></div>
+        <div id="analytics-sanskrit" style="display: none;"></div>
+      </div>
     </div>
 
    
@@ -1392,6 +1400,8 @@
   </div>
 
 </div>
+
+<script src="database_config.js"></script>
 
 <script src="app.js"></script>
 

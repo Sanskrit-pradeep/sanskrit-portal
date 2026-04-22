@@ -39,6 +39,12 @@ const FREE_TRIAL_DAYS = 3; // Change this single number to update the entire web
 // 8. AI BOOSTER SETTINGS: How many custom tests per day?
 const AI_BOOSTER_DAILY_LIMIT = 3; // Change this single number to update the AI limits everywhere!
 
+// 9. CLOUD VAULT SETTINGS: Max saved questions per user (Prevents Firebase crashes)
+const MAX_SAVED_QUESTIONS = 100;
+
+// 10. ANALYTICS SETTINGS: How many recent tests to use for the average percentage?
+const ANALYTICS_RECENT_LIMIT = 25;
+
 
 // --- AUTHENTICATION UI LOGIC ---
 function showAuthModal(forceMode = null) {
@@ -681,30 +687,6 @@ function switchTab(tab) {
 }
 let allQuestions = {}; // This saves downloaded questions so they only load once
 
-// 1. THE PHONEBOOK: Paste your individual Google Sheet URLs here
-const TEST_DATABASE_URLS = {
-  'vedic': 'https://script.google.com/macros/s/AKfycby2KLerDt9aHOKPU2PT3ugptNxoaslcgrmbR0REDn2OMSyVXdV_qpS2fKCuNROmDbQKZA/exec',
-  'grammar': 'https://script.google.com/macros/s/AKfycbyZItA0HY3SpL_d5QRJ3aoqWvOQ6W29MFmlSHBTJiX-kflkEe6bdiyuA1eJGMpSNgbb/exec',
-  'darshan': 'https://script.google.com/macros/s/AKfycbz99sKN9db97mj3uXgERz-Tzv2bWCuwGKTSGi5WU905OgEOYXGIr4OVR5qtisK8fgCx/exec',
-  'sahitya': 'https://script.google.com/macros/s/AKfycbx84ZIVDvvNG4yX9nOYBaU_GSKYIjtxflfEke5gbBWIr-Uidwa6Vt4yrSajoE13PGJiPw/exec',
-  'full': 'https://script.google.com/macros/s/AKfycbyikVGeVJijVnekPuqULdIQwzLGYFWPEm-bJmGMQviqf1ehUQJp-VfYGZ03SBvnjfHt4A/exec',
-  'other': 'https://script.google.com/macros/s/AKfycbwgzQw9hZPBNOznWJUCobVyjN7LYU9-Tf93fZgm4VxWQfKo9Lo9vdYP4HnaqBEgHPU/exec',
-  'paper1': 'https://script.google.com/macros/s/AKfycbyTOYJSrg6XhQ7bKDSnArkFYr_OyBGo29Wq2k-vIu-5LVFZbeBGXwB1KoslTCqXlfT3eQ/exec',
-  'paper1_topic': [
-    { tabName: 'Teaching Aptitude', url: 'https://sanskrit-pradeep.github.io/sanskrit-portal/Data/p1_teach_8xN3mP.json' },
-    { tabName: 'Math', url: 'https://sanskrit-pradeep.github.io/sanskrit-portal/Data/p1_math_kf5Hr56.json' },
-    { tabName: 'Research', url: 'https://sanskrit-pradeep.github.io/sanskrit-portal/Data/p1_rese_8sdfk45v.json' }
-    // You can add more later using this exact same format!
-  ]
-};
-
-// NEW: The Dedicated Free Databases
-const FREE_DATABASE_URLS = {
-  'topic': 'https://script.google.com/macros/s/AKfycbwsDVEqgnkrJNcc8BXg3roqQ7tL5p9trxC-Eu8rtD-hTtfOo64WPTwax7ql6uitgFbXJg/exec',
-  'full': 'https://script.google.com/macros/s/AKfycbyzEJOaAOHBalQESrUx3vDyvnPHijXL_6RfLTxu2iy4BAIUeLzagkE-c7_nHMKrDOf1/exec',
-  'paper1_full': 'https://script.google.com/macros/s/AKfycbyK5qR-npXX_Zjmpxu4NguoSHtsDWvZHwpOJEIUsDvlYBnn-HCZNE_LV-cxLVr1TjNwWA/exec',
-  'paper1_topic': 'https://script.google.com/macros/s/AKfycbxLbX-cXVXNjy5tNxF4nJ64Tj7fwBLGs5k1v3K8MR8OlykDvyAjGdj8rhaVEFT4yxw3iQ/exec'
-};
 let freeQuestionsCache = { 'topic': {}, 'full': {}, 'paper1_full': {}, 'paper1_topic': {} }; // Caches them so they load instantly
 
 // === MOCK TEST ENGINE ===
@@ -2295,6 +2277,12 @@ async function toggleSaveQuestion(qIndex) {
     showToast("Removed from saved questions");
     if(btn) { btn.innerHTML = '☆ Save'; btn.style.color = 'var(--text-light)'; }
   } else {
+    // 🚀 DATABASE OPTIMIZATION: Prevent the array from exceeding the safe limit!
+    if (saved.length >= MAX_SAVED_QUESTIONS) {
+      showToast(`⚠️ Cloud Vault Full! You can only save up to ${MAX_SAVED_QUESTIONS} questions. Please remove some old ones first.`);
+      return; // Instantly stop them from saving!
+    }
+    
     saved.unshift({ q: q.q, options: q.options, answer: q.answer, explanation: q.explanation });
     showToast("⭐ Question Saved to Cloud!");
     if(btn) { btn.innerHTML = '⭐ Saved'; btn.style.color = 'var(--saffron)'; }
@@ -2579,80 +2567,130 @@ function renderGamification() {
 // ==========================================
 // === SUBJECT-WISE ANALYTICS ENGINE ===
 // ==========================================
+
+// 🚀 NEW: Function to toggle the analytics views
+function switchAnalytics(tab) {
+  document.querySelectorAll('.a-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.a-tab[onclick*="${tab}"]`).classList.add('active');
+  
+  document.getElementById('analytics-paper1').style.display = tab === 'paper1' ? 'block' : 'none';
+  document.getElementById('analytics-sanskrit').style.display = tab === 'sanskrit' ? 'block' : 'none';
+  
+  // Re-trigger the progress bar animations!
+  setTimeout(() => {
+    const activeContainer = document.getElementById(`analytics-${tab}`);
+    const fills = activeContainer.querySelectorAll('.progress-fill');
+    fills.forEach(fill => fill.style.width = fill.getAttribute('data-target'));
+  }, 50);
+}
+
 function renderAnalytics() {
-  const container = document.getElementById('analytics-container');
-  if (!container) return;
+  const containerP1 = document.getElementById('analytics-paper1');
+  const containerSkt = document.getElementById('analytics-sanskrit');
+  if (!containerP1 || !containerSkt) return;
 
   const history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
   
   if (history.length === 0) {
-    container.innerHTML = '<div style="text-align:center; color:var(--text-light); font-size:0.85rem;">Take a few tests to generate your performance analysis.</div>';
+    containerP1.innerHTML = '<div style="text-align:center; color:var(--text-light); font-size:0.85rem;">Take Paper 1 tests to generate your analysis.</div>';
+    containerSkt.innerHTML = '<div style="text-align:center; color:var(--text-light); font-size:0.85rem;">Take Sanskrit tests to generate your analysis.</div>';
     return;
   }
 
-  // The exact names of your test categories to track
-  const subjects = [
-    { name: '1st Paper Full sets', icon: '📊' }, // NEW
-    { name: '1st Paper Topic-wise', icon: '📚' }, // NEW
-    { name: 'Full Mock Test', icon: '📋' },
-    { name: 'वैदिकसाहित्यम्', icon: '🔱' },
-    { name: 'व्याकरणम्', icon: '📖' },
-    { name: 'दर्शनम्', icon: '🧘' },
-    { name: 'साहित्यम्', icon: '🪷' },
-    { name: 'अन्यानि', icon: '🌺' }
+  // ===================================
+  // 1. BUILD THE SANSKRIT TAB (Static)
+  // ===================================
+  const sktSubjects = [
+    { name: 'Full Mock Test', icon: '📋' }, { name: 'वैदिकसाहित्यम्', icon: '🔱' },
+    { name: 'व्याकरणम्', icon: '📖' }, { name: 'दर्शनम्', icon: '🧘' },
+    { name: 'साहित्यम्', icon: '🪷' }, { name: 'अन्यानि', icon: '🌺' }
   ];
 
-  let html = '';
-  let hasData = false;
-
-  subjects.forEach(sub => {
-    // Find all tests the student took that start with this subject's name
+  let sktHtml = ''; let hasSktData = false;
+  sktSubjects.forEach(sub => {
     const subjectTests = history.filter(h => h.name && h.name.startsWith(sub.name));
-    
     if (subjectTests.length > 0) {
-      hasData = true;
-      
-      const totalTaken = subjectTests.length;
-      
-      // THE ROLLING AVERAGE: Take ONLY the 25 most recent tests for the math
-      const recentTests = subjectTests.slice(0, 25);
-      
-      // Calculate the average percentage based ONLY on those 25
-      const totalPct = recentTests.reduce((sum, h) => sum + h.pct, 0);
-      const avgPct = Math.round(totalPct / recentTests.length);
-      
-      // Determine the color based on performance
-      let colorClass = 'fill-red'; // Under 50%
-      if (avgPct >= 75) colorClass = 'fill-green'; // 75% or higher
-      else if (avgPct >= 50) colorClass = 'fill-orange'; // 50% to 74%
-
-      html += `
+      hasSktData = true;
+      const recent = subjectTests.slice(0, ANALYTICS_RECENT_LIMIT);
+      const avgPct = Math.round(recent.reduce((sum, h) => sum + h.pct, 0) / recent.length);
+      let colorClass = avgPct >= 75 ? 'fill-green' : (avgPct >= 50 ? 'fill-orange' : 'fill-red');
+      sktHtml += `
         <div class="analytics-item">
           <div class="analytics-header">
-            <span>${sub.icon} <span style="font-family: var(--font-skt);">${sub.name}</span> <span style="font-size:0.75rem; color:var(--text-light); font-weight:400; margin-left:4px;">(${totalTaken} tests)</span></span>
-            <span class="pct" title="Based on your last 25 attempts">${avgPct}%</span>
+            <span>${sub.icon} <span style="font-family: var(--font-skt);">${sub.name}</span> <span style="font-size:0.75rem; color:var(--text-light); font-weight:400; margin-left:4px;">(${subjectTests.length} tests)</span></span>
+            <span class="pct" title="Last ${ANALYTICS_RECENT_LIMIT} attempts">${avgPct}%</span>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill ${colorClass}" style="width: 0%" data-target="${avgPct}%"></div>
+          <div class="progress-track"><div class="progress-fill ${colorClass}" style="width: 0%" data-target="${avgPct}%"></div></div>
+        </div>`;
+    }
+  });
+  containerSkt.innerHTML = hasSktData ? sktHtml : '<div style="text-align:center; color:var(--text-light); font-size:0.85rem; padding: 10px;">No Sanskrit tests taken yet.</div>';
+
+  // ===================================
+  // 2. BUILD THE PAPER 1 TAB (Sanskrit-Style Order)
+  // ===================================
+  let p1Html = ''; let hasP1Data = false;
+
+  // A. Process Full Mocks First (Stays at the very top)
+  const p1FullTests = history.filter(h => h.name && h.name.startsWith('1st Paper Full sets'));
+  if (p1FullTests.length > 0) {
+    hasP1Data = true;
+    const recent = p1FullTests.slice(0, ANALYTICS_RECENT_LIMIT);
+    const avgPct = Math.round(recent.reduce((sum, h) => sum + h.pct, 0) / recent.length);
+    let colorClass = avgPct >= 75 ? 'fill-green' : (avgPct >= 50 ? 'fill-orange' : 'fill-red');
+    p1Html += `
+        <div class="analytics-item">
+          <div class="analytics-header">
+            <span>📊 <span style="font-family: var(--font-sans); font-weight: 700;">Paper 1 Full Mocks</span> <span style="font-size:0.75rem; color:var(--text-light); font-weight:400; margin-left:4px;">(${p1FullTests.length} tests)</span></span>
+            <span class="pct" title="Last ${ANALYTICS_RECENT_LIMIT} attempts">${avgPct}%</span>
           </div>
-        </div>
-      `;
+          <div class="progress-track"><div class="progress-fill ${colorClass}" style="width: 0%" data-target="${avgPct}%"></div></div>
+        </div>`;
+  }
+
+  // B. Process Topic-Wise Tests (Strict Syllabus Tab Order)
+  // 🚀 FIX: This exactly mimics the Sanskrit logic. Order them here exactly how they appear in your Google Sheet tabs!
+  const p1Subjects = [
+    { name: 'Teaching Aptitude', icon: '👨‍🏫' },
+    { name: 'Research Aptitude', icon: '🔍' },
+    { name: 'Comprehension', icon: '📄' },
+    { name: 'Communication', icon: '💬' },
+    { name: 'Mathematical Reasoning', icon: '🧮' },
+    { name: 'Logical Reasoning', icon: '🧠' },
+    { name: 'Data Interpretation', icon: '📈' },
+    { name: 'ICT', icon: '💻' },
+    { name: 'People, Development and Environment', icon: '🌍' },
+    { name: 'Higher Education System', icon: '🎓' }
+  ];
+
+  p1Subjects.forEach(sub => {
+    // Look specifically for tests that contain this exact tab name
+    const subjectTests = history.filter(h => h.name && h.name.includes(`1st Paper Topic-wise - ${sub.name}`));
+    
+    if (subjectTests.length > 0) {
+      hasP1Data = true;
+      const recent = subjectTests.slice(0, ANALYTICS_RECENT_LIMIT);
+      const avgPct = Math.round(recent.reduce((sum, h) => sum + h.pct, 0) / recent.length);
+      let colorClass = avgPct >= 75 ? 'fill-green' : (avgPct >= 50 ? 'fill-orange' : 'fill-red');
+      
+      p1Html += `
+        <div class="analytics-item">
+          <div class="analytics-header">
+            <span>${sub.icon} <span style="font-family: var(--font-sans);">${sub.name}</span> <span style="font-size:0.75rem; color:var(--text-light); font-weight:400; margin-left:4px;">(${subjectTests.length} tests)</span></span>
+            <span class="pct" title="Last ${ANALYTICS_RECENT_LIMIT} attempts">${avgPct}%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill ${colorClass}" style="width: 0%" data-target="${avgPct}%"></div></div>
+        </div>`;
     }
   });
 
-  if (!hasData) {
-    container.innerHTML = '<div style="text-align:center; color:var(--text-light); font-size:0.85rem;">Take a few topic-wise tests to generate your performance analysis.</div>';
-    return;
-  }
+  containerP1.innerHTML = hasP1Data ? p1Html : '<div style="text-align:center; color:var(--text-light); font-size:0.85rem; padding: 10px;">No Paper 1 tests taken yet.</div>';
 
-  container.innerHTML = html;
-
-  // Premium Animation: Wait 100ms, then slide all the progress bars to their targets!
+  // Trigger animation for the currently active tab
   setTimeout(() => {
-    const fills = container.querySelectorAll('.progress-fill');
-    fills.forEach(fill => {
-      fill.style.width = fill.getAttribute('data-target');
-    });
+    const activeContainer = document.getElementById('analytics-paper1').style.display !== 'none' ? containerP1 : containerSkt;
+    const fills = activeContainer.querySelectorAll('.progress-fill');
+    fills.forEach(fill => fill.style.width = fill.getAttribute('data-target'));
   }, 100);
 }
 
