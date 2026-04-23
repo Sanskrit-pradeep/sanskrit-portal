@@ -976,13 +976,7 @@
         <div class="tagline">ज्ञानञ्च शङ्करादिच्छेत्</div>
         <p>Your complete guide for UGC NTA NET Sanskrit preparation. Free resources, mock tests, and video lectures — available to all.</p>
       </div>
-      <div class="footer-col">
-        <h4>Study Materials</h4>
-        <a href="#" onclick="navigate('free');switchTab('notes');return false;">Notes</a>
-        <a href="#" onclick="navigate('mocktest');return false;">Mock Tests</a>
-        <a href="#" onclick="navigate('free');switchTab('videos');return false;">Videos</a>
-        <a href="#" onclick="navigate('free');switchTab('pyqs');return false;">PYQs</a>
-      </div>
+      
       <div class="footer-col">
         <h4>Quick Links</h4>
         <a href="#" onclick="navigate('courses');return false;">Courses</a>
@@ -991,6 +985,14 @@
         <a href="#" onclick="navigate('about');return false;">About Us</a>
         <a href="#" onclick="navigate('contact');return false;">Contact</a>
       </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="legal.html#terms" target="_blank">Terms & Conditions</a>
+        <a href="legal.html#privacy" target="_blank">Privacy Policy</a>
+        <a href="legal.html#refund" target="_blank">Refund Policy</a>
+      </div>
+
       <div class="footer-col">
         <h4>Connect</h4>
         <a href="https://www.youtube.com/c/SanskritVartika" target="_blank">YouTube</a>
@@ -1260,6 +1262,13 @@
     <input type="text" id="auth-whatsapp" class="form-input mb-16" placeholder="WhatsApp Number" style="display:none;">
     <input type="email" id="auth-email" class="form-input mb-16" placeholder="Email Address">
     <input type="password" id="auth-password" class="form-input mb-16" placeholder="Password">
+
+    <div id="legal-checkbox-container" style="display:none; margin-bottom: 16px; text-align: left;">
+      <label style="font-size: 0.8rem; color: var(--text-mid); display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="legal-agree-checkbox" style="margin-top: 3px; accent-color: var(--saffron);">
+        <span>I agree to the <a href="legal.html#terms" target="_blank" style="color: var(--saffron); text-decoration: underline;">Terms of Service</a> and <a href="legal.html#privacy" target="_blank" style="color: var(--saffron); text-decoration: underline;">Privacy Policy</a>.</span>
+      </label>
+    </div>
 
     <p id="auth-error" style="color: #D32F2F; font-size: 0.85rem; margin-bottom: 16px; display: none; background: #FFEBEE; padding: 10px; border-radius: 4px; text-align: center;"></p>
 

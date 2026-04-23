@@ -103,6 +103,12 @@ function toggleAuthMode() {
     // 🚀 BUG FIX: Changed href='#' to href='javascript:void(0);' to prevent the pop-up closer from triggering!
     switchText.innerHTML = "New here? <a href='javascript:void(0);' onclick='toggleAuthMode()' style='color: var(--saffron); font-weight: bold;'>Create an account</a>";
   }
+
+  // 🚀 NEW: Show Checkbox ONLY on Sign-Up
+  const legalBox = document.getElementById('legal-checkbox-container');
+  if (legalBox) {
+    legalBox.style.display = isSignUpMode ? 'block' : 'none';
+  }
 }
 
 // --- FIXED: FORGOT PASSWORD MUST BE OUTSIDE ---
@@ -140,6 +146,16 @@ async function handleAuthAction() {
     errorBox.textContent = "Please fill in all fields.";
     errorBox.style.display = 'block';
     return;
+  }
+
+  // 🚀 NEW: The Legal Gatekeeper
+  if (isSignUpMode) {
+    const isAgreed = document.getElementById('legal-agree-checkbox').checked;
+    if (!isAgreed) {
+      errorBox.textContent = "⚠️ You must agree to the Terms & Privacy Policy to create an account.";
+      errorBox.style.display = 'block';
+      return;
+    }
   }
 
   const btn = document.getElementById('auth-action-btn');
