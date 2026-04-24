@@ -703,7 +703,13 @@ function switchTab(tab) {
 }
 let allQuestions = {}; // This saves downloaded questions so they only load once
 
-let freeQuestionsCache = { 'topic': {}, 'full': {}, 'paper1_full': {}, 'paper1_topic': {} }; // Caches them so they load instantly
+let freeQuestionsCache = {
+  'free_skt_topic': {},
+  'free_skt_full': {},
+  'free_p1_full': {},
+  'free_p1_topic': {}
+};
+
 
 // === MOCK TEST ENGINE ===
 let testState = {
@@ -720,14 +726,18 @@ let testState = {
 };
 
 const catNames = {
-  full: 'Full Mock Test', vedic: 'वैदिकसाहित्यम्', grammar: 'व्याकरणम्',
-  darshan: 'दर्शनम्', sahitya: 'साहित्यम्', other: 'अन्यानि',
-  paper1: '1st Paper Full sets', 
-  paper1_topic: '1st Paper Topic-wise',
-  // NEW: Distinct names for the free database
-  free_topic: 'Free Topic Test', free_full: 'Free Full Mock',
-  free_paper1_full: 'Free 1st Paper Full',      // NEW
-  free_paper1_topic: 'Free 1st Paper Topic'     // NEW
+  paid_skt_full: 'Sanskrit Full Mocks',
+  paid_skt_vedic: 'वैदिकसाहित्यम्',
+  paid_skt_grammar: 'व्याकरणम्',
+  paid_skt_darshan: 'दर्शनम्',
+  paid_skt_sahitya: 'साहित्यम्',
+  paid_skt_other: 'अन्यानि',
+  paid_p1_full: '1st Paper Full sets',
+  paid_p1_topic: '1st Paper Topic-wise',
+  free_skt_full: 'Free Sanskrit Full Mocks',
+  free_skt_topic: 'Free Sanskrit Topic-wise',
+  free_p1_full: 'Free Paper 1 Full Sets',
+  free_p1_topic: 'Free Paper 1 Topic-wise'
 };
 
 // 2. THE CENTRAL DATA FETCHER (Upgraded with Smart Decryption & Timeout)
@@ -812,12 +822,24 @@ async function fetchQuestions(cat) {
       let sheetName = String(row.category || row.Category || "").trim();
       sheetName = sheetName.charAt(0).toUpperCase() + sheetName.slice(1);
 
-      // 🚀 NEW: Forces the test name to be exactly the Tab Name!
+      // 🚀 NEW: Dynamic Naming Engine!
       let setKey;
-      if (sheetName && !sheetName.toLowerCase().startsWith('sheet')) {
-        setKey = sheetName; 
+      const isFullSet = cat.includes('full'); // Automatically detects 'paid_skt_full', 'paid_p1_full', etc.
+
+      if (isFullSet) {
+        // RULE 1: If Full Set -> Use ONLY the Tab Name (e.g., "Set- 1")
+        if (sheetName && !sheetName.toLowerCase().startsWith('sheet')) {
+          setKey = sheetName;
+        } else {
+          setKey = "Set " + originalSet; // Fallback if tab is blank
+        }
       } else {
-        setKey = "Set " + originalSet; // Fallback if you forget to name the tab
+        // RULE 2: If Topic Set -> Use "Tab Name - Set Number" (e.g., "ऋग्वेदः - Set 1")
+        if (sheetName && !sheetName.toLowerCase().startsWith('sheet')) {
+          setKey = sheetName + " - Set " + originalSet;
+        } else {
+          setKey = "Set " + originalSet;
+        }
       }
 
       if (questionText) {
@@ -922,12 +944,12 @@ function openPremiumSubView(type) {
   if (type === 'paper1') {
     title.textContent = "1st Paper Tests";
     grid.innerHTML = `
-      <div class="test-cat-card" onclick="showSets('paper1')">
+      <div class="test-cat-card" onclick="showSets('paid_p1_full')">
         <div class="test-cat-icon">📊</div>
         <h3>1st Paper Full sets</h3>
         <p>Complete 50-question mocks</p>
       </div>
-      <div class="test-cat-card" onclick="showSets('paper1_topic')">
+      <div class="test-cat-card" onclick="showSets('paid_p1_topic')">
         <div class="test-cat-icon">📚</div>
         <h3>1st Paper Topic-wise</h3>
         <p>Teaching, Research & Aptitude</p>
@@ -936,12 +958,12 @@ function openPremiumSubView(type) {
   } else if (type === 'sanskrit') {
     title.textContent = "Sanskrit Tests";
     grid.innerHTML = `
-      <div class="test-cat-card" onclick="showSets('full')"><div class="test-cat-icon">📋</div><h3>Full Mock Test</h3><p>Complete 100-question tests</p></div>
-      <div class="test-cat-card" onclick="showSets('vedic')"><div class="test-cat-icon">🔱</div><h3>वैदिकसाहित्यम्</h3><p>Vedic Literature</p></div>
-      <div class="test-cat-card" onclick="showSets('grammar')"><div class="test-cat-icon">📖</div><h3>व्याकरणम्</h3><p>Sanskrit Grammar</p></div>
-      <div class="test-cat-card" onclick="showSets('darshan')"><div class="test-cat-icon">🧘</div><h3>दर्शनम्</h3><p>Philosophy</p></div>
-      <div class="test-cat-card" onclick="showSets('sahitya')"><div class="test-cat-icon">🪷</div><h3>साहित्यम्</h3><p>Sanskrit Literature</p></div>
-      <div class="test-cat-card" onclick="showSets('other')"><div class="test-cat-icon">🌺</div><h3>अन्यानि</h3><p>Miscellaneous topics</p></div>
+      <div class="test-cat-card" onclick="showSets('paid_skt_full')"><div class="test-cat-icon">📋</div><h3>Full Mock Test</h3><p>Complete 100-question tests</p></div>
+      <div class="test-cat-card" onclick="showSets('paid_skt_vedic')"><div class="test-cat-icon">🔱</div><h3>वैदिकसाहित्यम्</h3><p>Vedic Literature</p></div>
+      <div class="test-cat-card" onclick="showSets('paid_skt_grammar')"><div class="test-cat-icon">📖</div><h3>व्याकरणम्</h3><p>Sanskrit Grammar</p></div>
+      <div class="test-cat-card" onclick="showSets('paid_skt_darshan')"><div class="test-cat-icon">🧘</div><h3>दर्शनम्</h3><p>Philosophy</p></div>
+      <div class="test-cat-card" onclick="showSets('paid_skt_sahitya')"><div class="test-cat-icon">🪷</div><h3>साहित्यम्</h3><p>Sanskrit Literature</p></div>
+      <div class="test-cat-card" onclick="showSets('paid_skt_other')"><div class="test-cat-icon">🌺</div><h3>अन्यानि</h3><p>Miscellaneous topics</p></div>
     `;
   } else if (type === 'batch') {
     title.textContent = "Sanskrit Net Class";
@@ -972,7 +994,7 @@ async function showSets(cat) {
   }
 
   // 2. SCENARIO B: Logged in, but Missing the Required Pass -> Prompt Upgrade
-  const reqPass = (cat === 'paper1' || cat === 'paper1_topic') ? 'general' : 'sanskrit';
+  const reqPass = (cat === 'paid_p1_full' || cat === 'paid_p1_topic') ? 'general' : 'sanskrit';
   if (!hasAccess(reqPass)) {
     document.getElementById('premium-lock-modal').style.display = 'flex';
     return; 
@@ -1025,152 +1047,211 @@ async function showSets(cat) {
 
 // --- UPGRADED SMART ENGINE: The Free Services Loader ---
 async function openFreeSets(mode) {
-  navigate('mocktest', true, true); 
+  isFreeMode = true; 
+
+  if(document.getElementById('back-to-cat-btn')) {
+      document.getElementById('back-to-cat-btn').textContent = '← Back to Free Services';
+  }
+
+  document.getElementById('page-free').classList.remove('active');
+  document.getElementById('test-sets-view').style.display = 'block';
+  document.getElementById('bottomNav').style.display = 'none';
   
-  document.getElementById('test-categories').style.display = 'none';
-  document.getElementById('test-interface').style.display = 'none';
-  document.getElementById('test-results').style.display = 'none';
-
-  const setsView = document.getElementById('test-sets-view');
-  setsView.style.display = 'block';
-  window.scrollTo(0, 0);
-  setsView.scrollTop = 0; // 🚀 UX FIX: Always start grid at the top!
-
-  // 🚀 FIX: Ensure the descriptive text is visible for normal tests!
+  // 🚀 SKELETON UI PREP
+  document.getElementById('sets-filter').style.display = 'none'; 
   const setsDesc = document.querySelector('#test-sets-view p');
-  if (setsDesc) setsDesc.style.display = 'block';
-
-  // Configuration for the 4 Free Modes
-  const modeConfigs = {
-    'full': { title: "Free Sanskrit Full Mocks", catTitle: catNames['free_full'], descFallback: "Complete 100-question mock test" },
-    'topic': { title: "Free Sanskrit Topic-wise", catTitle: catNames['free_topic'], descFallback: "Subject-specific practice" },
-    'paper1_full': { title: "Free Paper 1 Full Sets", catTitle: catNames['free_paper1_full'], descFallback: "Complete 50-question mock test" },
-    'paper1_topic': { title: "Free Paper 1 Topic-wise", catTitle: catNames['free_paper1_topic'], descFallback: "General Paper 1 practice" }
-  };
-  const config = modeConfigs[mode];
-
-  // Inject Skeletons
-  const grid = document.getElementById('sets-grid');
-  grid.innerHTML = getSkeletonGrid(6, 'test'); 
-  document.getElementById('sets-category-title').textContent = config.title;
+  if (setsDesc) setsDesc.style.display = 'none'; // Hide text during skeleton loading
   
-  // 🚀 FIX: Instantly hide the old filter while the new test loads!
-  const tempFilter = document.getElementById('sets-filter');
-  if (tempFilter) {
-    tempFilter.style.display = 'none';
-    tempFilter.innerHTML = '<option value="all">Loading...</option>';
-  }
+  window.scrollTo(0,0);
 
-  const backBtn = document.getElementById('back-to-cat-btn');
-  if(backBtn) backBtn.textContent = '← Back to Free Services';
+  const modeConfigs = {
+    'free_skt_full': { title: "Free Sanskrit Full Mocks", catTitle: catNames['free_skt_full'], descFallback: "Complete 100-question mock test" },
+    'free_skt_topic': { title: "Free Sanskrit Topic-wise", catTitle: catNames['free_skt_topic'], descFallback: "Subject-specific practice" },
+    'free_p1_full': { title: "Free Paper 1 Full Sets", catTitle: catNames['free_p1_full'], descFallback: "Complete 50-question mock test" },
+    'free_p1_topic': { title: "Free Paper 1 Topic-wise", catTitle: catNames['free_p1_topic'], descFallback: "General Paper 1 practice" }
+  };
 
-  // Fetch data from the isolated Free Sheets (if not already cached)
-  if (Object.keys(freeQuestionsCache[mode]).length === 0) {
-    try {
-      const response = await fetch(FREE_DATABASE_URLS[mode]);
-      const data = await response.json();
-      
-      data.forEach(row => {
-        let setKey = "";
-        let displayDesc = "";
+  const config = modeConfigs[mode];
+  document.getElementById('sets-category-title').textContent = "Loading Free Sets...";
+  
+  const grid = document.getElementById('sets-grid');
+  
+  // 🚀 INJECT SKELETONS
+  grid.innerHTML = getSkeletonGrid(6, 'test'); 
+  
+  // Disable the old loading spinner since we have skeletons now
+  const loading = document.getElementById('loading-overlay');
+  if (loading) loading.style.display = 'none';
 
-        // NEW: Smartly extract the exact columns from your Google Sheet
-        let tabName = row.category || row.Category || config.descFallback; // Tab name (e.g., दर्शनम्)
-        let topicName = row.topic || row.Topic || tabName;                 // Topic column (e.g., तर्कसंग्रहः)
-        let setNum = row.setNumber || row.set || row.Set || '1';           // Set Number column
+  try {
+    let availableSets = freeQuestionsCache[mode];
+    
+    // 🚀 Premium 400ms delay to allow skeletons to breathe smoothly
+    const delayPromise = new Promise(r => setTimeout(r, 400));
+    let fetchPromise = Promise.resolve();
 
-        if (mode === 'topic' || mode === 'paper1_topic') {
-          // Main Title: Topic + Set (e.g., "तर्कसंग्रहः - Set 1")
-          setKey = `${topicName} - Set ${setNum}`;
-          
-          // Subtitle: Tab Name (e.g., "दर्शनम्")
-          displayDesc = tabName; 
-        } else {
-          // For Full Mocks: Just "Set 1"
-          setKey = `Set ${setNum}`;
-          displayDesc = config.descFallback;
-        }
-
-        if (!freeQuestionsCache[mode][setKey]) {
-          freeQuestionsCache[mode][setKey] = { desc: displayDesc, questions: [], catName: config.catTitle };
-        }
-
-        let rawAns = String(row.answer || "1").trim().toUpperCase();
-        let convertedAns = 0;
-        if (rawAns === "A" || rawAns === "1") convertedAns = 0;
-        else if (rawAns === "B" || rawAns === "2") convertedAns = 1;
-        else if (rawAns === "C" || rawAns === "3") convertedAns = 2;
-        else if (rawAns === "D" || rawAns === "4") convertedAns = 3;
-        else convertedAns = Math.max(0, Number(rawAns) - 1);
-
-        
-        const groupId = String(row.groupid || row.GroupID || row.group || "").trim();
-        freeQuestionsCache[mode][setKey].questions.push({
-          q: row.question, options: [row.opt0||row.opta, row.opt1||row.optb, row.opt2||row.optc, row.opt3||row.optd],
-          answer: convertedAns, explanation: row.explanation,
-          groupId: groupId
-        });
-      });
-    } catch (error) {
-      grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:red;">Failed to connect to the free database.</p>';
-      return;
+    if (!availableSets || Object.keys(availableSets).length === 0) {
+      let fetchUrl = FREE_DATABASE_URLS[mode]; 
+      fetchPromise = fetch(fetchUrl).then(res => res.json());
     }
-  }
+    
+    // Wait for both the fetch (if needed) AND the 400ms delay to finish
+    const [data] = await Promise.all([fetchPromise, delayPromise]);
+    
+    if (data) {
+      availableSets = {};
+      
+      data.forEach(item => {
+        // 🚀 BULLETPROOF DATA EXTRACTION
+        let setNum = String(item['Set Number'] || item['set number'] || item['Set'] || item['set'] || "1").trim();
+        let topicName = String(item['Category'] || item['category'] || item['Topic'] || item['topic'] || "").trim();
+        let tabName = String(item['Tab Name'] || item['tab name'] || item['tabName'] || "").trim();
+        
+        // Auto-capitalization (safeguarded for English text only)
+        if(topicName && /^[a-zA-Z]/.test(topicName)) topicName = topicName.charAt(0).toUpperCase() + topicName.slice(1);
+        if(tabName && /^[a-zA-Z]/.test(tabName)) tabName = tabName.charAt(0).toUpperCase() + tabName.slice(1);
+        
+        let setKey;
+        let displayDesc;
 
-  // Render the UI
-  grid.innerHTML = '';
-  const cloudHistory = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
-  const localHistory = JSON.parse(localStorage.getItem('vartika_free_history') || '[]');
-  const history = [...cloudHistory, ...localHistory];
-  const availableSets = freeQuestionsCache[mode];
+        // ==========================================
+        // 🎯 RULE 1: Free Full Sets -> Exactly the Tab Name 
+        // ==========================================
+        if (mode === 'free_p1_full' || mode === 'free_skt_full') {
+          if (tabName && !tabName.toLowerCase().startsWith('sheet')) {
+            setKey = tabName;
+            displayDesc = tabName;
+          } else {
+            setKey = "Set " + setNum; // Fallback
+            displayDesc = config.descFallback;
+          }
+        } 
+        // ==========================================
+        // 🎯 RULE 2: Paper 1 Topic -> "Tab Name - Set Number"
+        // ==========================================
+        else if (mode === 'free_p1_topic') {
+          if (tabName && !tabName.toLowerCase().startsWith('sheet')) {
+            setKey = tabName + " - Set " + setNum;
+            displayDesc = tabName;
+          } else {
+            setKey = "Set " + setNum; // Fallback
+            displayDesc = config.descFallback;
+          }
+        }
+        // ==========================================
+        // 🎯 RULE 3: Sanskrit Topic -> "Topic Column - Set Number"
+        // ==========================================
+        else if (mode === 'free_skt_topic') {
+          if (topicName) {
+            setKey = topicName + " - Set " + setNum;
+          } else {
+            setKey = "Set " + setNum; // Fallback
+          }
+          // Subheader explicitly uses the Tab Name
+          displayDesc = (tabName && !tabName.toLowerCase().startsWith('sheet')) ? tabName : config.descFallback;
+        }
 
-  const filterEl = document.getElementById('sets-filter'); // Grab the filter element
+        // Initialize the grouping container if it's the first question
+        if (!availableSets[setKey]) {
+          availableSets[setKey] = { desc: displayDesc, questions: [] };
+        }
+        
+        // 🛡️ Safe Question Parsing
+        const questionText = item['Question'] || item['question'] || item['q'] || "";
+        
+        if (questionText) {
+          let rawAns = String(item['Correct Option'] || item['correct option'] || item['answer'] || item['Answer'] || "1").trim().toUpperCase();
+          let convertedAns = 0;
+          if (rawAns === "A" || rawAns === "1") convertedAns = 0;
+          else if (rawAns === "B" || rawAns === "2") convertedAns = 1;
+          else if (rawAns === "C" || rawAns === "3") convertedAns = 2;
+          else if (rawAns === "D" || rawAns === "4") convertedAns = 3;
+          else convertedAns = Math.max(0, Number(rawAns) - 1);
 
-  if (Object.keys(availableSets).length === 0) {
-    grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:var(--text-light);">Free sets are being updated. Check back soon!</p>';
-    filterEl.style.display = 'none';
-    return;
-  }
+          availableSets[setKey].questions.push({
+            q: questionText,
+            options: [
+              item['Option 1'] || item['option 1'] || item['opta'] || item['Option A'] || "A", 
+              item['Option 2'] || item['option 2'] || item['optb'] || item['Option B'] || "B", 
+              item['Option 3'] || item['option 3'] || item['optc'] || item['Option C'] || "C", 
+              item['Option 4'] || item['option 4'] || item['optd'] || item['Option D'] || "D"
+            ],
+            answer: convertedAns,
+            explanation: item['Explanation'] || item['explanation'] || "",
+            groupId: String(item['groupid'] || item['GroupID'] || item['group'] || "").trim() 
+          });
+        }
+      });
 
-  // 🚀 NEW: Auto-Extract Unique Tab Names for Free Tests!
-  let uniqueTopics = new Set();
-  Object.keys(availableSets).forEach(setKey => {
-    uniqueTopics.add(availableSets[setKey].desc);
-  });
+      freeQuestionsCache[mode] = availableSets;
+    }
 
-  // 🚀 NEW: Populate the Dropdown
-  if (uniqueTopics.size > 1) {
-    filterEl.style.display = 'block';
-    let filterHTML = '<option value="all">All Topics</option>';
-    Array.from(uniqueTopics).sort().forEach(t => {
-      filterHTML += `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`;
+    // 🚀 Restore UI text
+    document.getElementById('sets-category-title').textContent = config.title;
+    if (setsDesc) setsDesc.style.display = 'block';
+
+    const history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
+
+    // Clear Skeletons
+    grid.innerHTML = '';
+    
+    if (Object.keys(availableSets).length === 0) {
+       grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:var(--text-light);">No sets available for this topic yet. Please check back later!</p>';
+       return;
+    }
+
+    // 🚀 BONUS: Filter Dropdown logic brought over to the Free section!
+    const filterEl = document.getElementById('sets-filter');
+    let uniqueTopics = new Set();
+    Object.keys(availableSets).forEach(setKey => {
+      let topic = setKey.includes(' - Set') ? setKey.split(' - Set')[0] : 'General';
+      uniqueTopics.add(topic);
     });
-    filterEl.innerHTML = filterHTML;
-  } else {
-    filterEl.style.display = 'none';
+
+    if (filterEl) {
+      if (uniqueTopics.size > 1) {
+        filterEl.style.display = 'block';
+        let filterHTML = '<option value="all">All Topics</option>';
+        Array.from(uniqueTopics).sort().forEach(t => {
+          filterHTML += `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`;
+        });
+        filterEl.innerHTML = filterHTML;
+      } else {
+        filterEl.style.display = 'none';
+      }
+    }
+
+    Object.keys(availableSets).forEach(setKey => {
+      const setObj = availableSets[setKey];
+      
+      // Safety check: Skip empty tests
+      if (setObj.questions.length === 0) return;
+
+      if (!allQuestions[mode]) allQuestions[mode] = {};
+      allQuestions[mode][setKey] = setObj.questions;
+      
+      const exactTestName = config.catTitle + " - " + setKey;
+      const isCompleted = history.some(h => h.name === exactTestName);
+      const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
+
+      let topic = setKey.includes(' - Set') ? setKey.split(' - Set')[0] : 'General';
+
+      grid.innerHTML += `
+        <div class="test-cat-card" data-topic="${escapeHTML(topic)}" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('${mode}', '${setKey}')">
+          ${checkmark}
+          <div class="test-cat-icon">🎁</div>
+          <h3 style="font-size:1.05rem;">${setKey}</h3>
+          <p style="font-family: var(--font-skt); font-size: 0.9rem;">${setObj.desc}</p>
+          <span class="q-count">${setObj.questions.length} Questions</span>
+        </div>
+      `;
+    });
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('sets-category-title').textContent = config.title;
+    grid.innerHTML = '<p style="color:#D32F2F; text-align:center; grid-column:1/-1;">Error loading free tests. Please check your internet connection.</p>';
   }
-
-  Object.keys(availableSets).forEach(setKey => {
-    const setObj = availableSets[setKey];
-    
-    if (!allQuestions['free_' + mode]) allQuestions['free_' + mode] = {};
-    allQuestions['free_' + mode][setKey] = setObj.questions;
-    
-    const exactTestName = config.catTitle + " - " + setKey;
-    const isCompleted = history.some(h => h.name === exactTestName);
-    const checkmark = isCompleted ? '<div style="position:absolute; top:12px; right:12px; background:#4CAF50; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>' : '';
-
-    // 🚀 NEW: Attach data-topic to the card!
-    grid.innerHTML += `
-      <div class="test-cat-card" data-topic="${escapeHTML(setObj.desc)}" style="border: ${isCompleted ? '2px solid #4CAF50' : '2px solid transparent'}" onclick="promptStartTest('free_${mode}', '${setKey}')">
-        ${checkmark}
-        <div class="test-cat-icon">🎁</div>
-        <h3 style="font-size:1.05rem;">${setKey}</h3>
-        <p style="font-family: var(--font-skt); font-size: 0.9rem;">${setObj.desc}</p>
-        <span class="q-count">${setObj.questions.length} Questions</span>
-      </div>
-    `;
-  });
 }
 
 // 3. THE UI RENDERER: Builds the grid of Sets after data is loaded
@@ -1587,19 +1668,21 @@ function confirmSubmit() {
     // 2. The Categorizer: Figure out the broad subject
     let subjectGroup = "Other Topics";
     
-    if (tName.includes("Full Mock")) subjectGroup = "Full Mocks";
+    // 🚀 FIX: Uses "Full" to catch both "Full Mocks" and "Full sets"
+    if (tName.includes("Full")) subjectGroup = "Full Mocks";
     else if (tName.includes("वैदिकसाहित्यम्")) subjectGroup = "Vedic Sahitya";
     else if (tName.includes("व्याकरणम्")) subjectGroup = "Grammar";
     else if (tName.includes("दर्शनम्")) subjectGroup = "Darshan";
     else if (tName.includes("साहित्यम्")) subjectGroup = "Sahitya";
     else if (tName.includes("अन्यानि")) subjectGroup = "Anyani";
-    else if (tName.includes("1st Paper")) subjectGroup = "1st Paper";
+    // 🚀 FIX: Catches both "1st Paper" (Paid) and "Paper 1" (Free)
+    else if (tName.includes("1st Paper") || tName.includes("Paper 1")) subjectGroup = "Paper 1";
 
     // 3. Send all data layers to GA4
     gtag('event', 'mock_test_completed', {
       'test_subject': subjectGroup,      
       'test_name': tName,                
-      'test_type': testType,             // Logs "Free" or "Premium"
+      'test_type': testType,             
       'score_percentage': pct
     });
   }
@@ -1673,11 +1756,15 @@ function retakeTest() {
   startTest(testState.category, testState.currentSet);
 }
 function showCategories() {
-  document.body.classList.remove('test-mode-active'); // Moved INSIDE the function!
+  document.body.classList.remove('test-mode-active'); 
   clearInterval(testState.timerInterval);
   document.getElementById('test-sets-view').style.display = 'none';
   document.getElementById('test-interface').style.display = 'none';
   document.getElementById('test-results').style.display = 'none';
+
+  // 🚀 BUG FIX 3: Restore the bottom navigation bar so mobile users don't get trapped!
+  const bNav = document.getElementById('bottomNav');
+  if (bNav) bNav.style.display = ''; 
 
   // Smart Routing: Check where the user came from!
   if (isFreeMode) {
@@ -1756,8 +1843,8 @@ function getWeakTopics(paperType) {
   Object.keys(catNames).forEach(k => reverseCatNames[catNames[k]] = k);
 
   history.forEach(h => {
-    // Skip AI boosters, full mocks, and free tests
-    if (h.name.includes("AI Booster") || h.name.includes("Full Mock") || h.name.includes("Free")) return;
+    // 🚀 FIX: Now safely ignores both "Full Mocks" and "Full sets"
+    if (h.name.includes("AI Booster") || h.name.includes("Full") || h.name.includes("Free")) return;
 
     let parts = h.name.split(" - ");
     if (parts.length < 2) return;
@@ -1769,8 +1856,8 @@ function getWeakTopics(paperType) {
     if (!cat) return;
 
     // Filter out the papers we don't care about right now
-    if (paperType === 'paper1' && cat !== 'paper1_topic') return;
-    if (paperType === 'sanskrit' && !['vedic', 'grammar', 'darshan', 'sahitya', 'other'].includes(cat)) return;
+    if (paperType === 'paper1' && cat !== 'paid_p1_topic') return;
+  if (paperType === 'sanskrit' && !['paid_skt_vedic', 'paid_skt_grammar', 'paid_skt_darshan', 'paid_skt_sahitya', 'paid_skt_other'].includes(cat)) return;
 
     // 🚀 PHASE 1: Extract the broad tab name! (Slices off " - Set 1")
     let topicName = fullSetKey;
@@ -2323,7 +2410,7 @@ async function toggleSaveQuestion(qIndex) {
     
     // Detect if the current test is Paper 1 or Sanskrit
     let currentPaperType = 'sanskrit';
-    const p1Cats = ['paper1', 'paper1_topic', 'free_paper1_full', 'free_paper1_topic'];
+    const p1Cats = ['paid_p1_full', 'paid_p1_topic', 'free_p1_full', 'free_p1_topic'];
     if (p1Cats.includes(testState.category) || (testState.category === 'ai_booster' && testState.currentSet === 'paper1')) {
         currentPaperType = 'paper1';
     }
@@ -2674,7 +2761,8 @@ function renderAnalytics() {
   // 1. BUILD THE SANSKRIT TAB (Static)
   // ===================================
   const sktSubjects = [
-    { name: 'Full Mock Test', icon: '📋' }, { name: 'वैदिकसाहित्यम्', icon: '🔱' },
+    // 🚀 NEW: Updated 'Full Mock Test' to 'Sanskrit Full Mocks' to match our new IDs!
+    { name: 'Sanskrit Full Mocks', icon: '📋' }, { name: 'वैदिकसाहित्यम्', icon: '🔱' },
     { name: 'व्याकरणम्', icon: '📖' }, { name: 'दर्शनम्', icon: '🧘' },
     { name: 'साहित्यम्', icon: '🪷' }, { name: 'अन्यानि', icon: '🌺' }
   ];

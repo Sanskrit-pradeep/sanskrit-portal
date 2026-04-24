@@ -9,31 +9,31 @@ const TEST_DATABASE_URLS = {
   
   // Premium Sanskrit full topics
   // .................................................................................................
-  'full': 'https://script.google.com/macros/s/AKfycbyikVGeVJijVnekPuqULdIQwzLGYFWPEm-bJmGMQviqf1ehUQJp-VfYGZ03SBvnjfHt4A/exec',
+  'paid_skt_full': 'https://script.google.com/macros/s/AKfycbyikVGeVJijVnekPuqULdIQwzLGYFWPEm-bJmGMQviqf1ehUQJp-VfYGZ03SBvnjfHt4A/exec',
 
   // Veda subject tipics
   // .................................................................................................
-  'vedic': 'https://script.google.com/macros/s/AKfycby2KLerDt9aHOKPU2PT3ugptNxoaslcgrmbR0REDn2OMSyVXdV_qpS2fKCuNROmDbQKZA/exec',
+  'paid_skt_vedic': 'https://script.google.com/macros/s/AKfycby2KLerDt9aHOKPU2PT3ugptNxoaslcgrmbR0REDn2OMSyVXdV_qpS2fKCuNROmDbQKZA/exec',
 
   // Grammar subject tipics
   // .................................................................................................
-  'grammar': 'https://script.google.com/macros/s/AKfycbyZItA0HY3SpL_d5QRJ3aoqWvOQ6W29MFmlSHBTJiX-kflkEe6bdiyuA1eJGMpSNgbb/exec',
+  'paid_skt_grammar': 'https://script.google.com/macros/s/AKfycbyZItA0HY3SpL_d5QRJ3aoqWvOQ6W29MFmlSHBTJiX-kflkEe6bdiyuA1eJGMpSNgbb/exec',
 
   // Darshan subject tipics
   // .................................................................................................
-  'darshan': 'https://script.google.com/macros/s/AKfycbz99sKN9db97mj3uXgERz-Tzv2bWCuwGKTSGi5WU905OgEOYXGIr4OVR5qtisK8fgCx/exec',
+  'paid_skt_darshan': 'https://script.google.com/macros/s/AKfycbz99sKN9db97mj3uXgERz-Tzv2bWCuwGKTSGi5WU905OgEOYXGIr4OVR5qtisK8fgCx/exec',
 
   // Sahitya subject tipics
   // .................................................................................................
-  'sahitya': 'https://script.google.com/macros/s/AKfycbx84ZIVDvvNG4yX9nOYBaU_GSKYIjtxflfEke5gbBWIr-Uidwa6Vt4yrSajoE13PGJiPw/exec',
+  'paid_skt_sahitya': 'https://script.google.com/macros/s/AKfycbx84ZIVDvvNG4yX9nOYBaU_GSKYIjtxflfEke5gbBWIr-Uidwa6Vt4yrSajoE13PGJiPw/exec',
 
   // Other subject topics
   // ................................................................................................
-  'other': 'https://script.google.com/macros/s/AKfycbwgzQw9hZPBNOznWJUCobVyjN7LYU9-Tf93fZgm4VxWQfKo9Lo9vdYP4HnaqBEgHPU/exec',
+  'paid_skt_other': 'https://script.google.com/macros/s/AKfycbwgzQw9hZPBNOznWJUCobVyjN7LYU9-Tf93fZgm4VxWQfKo9Lo9vdYP4HnaqBEgHPU/exec',
 
   // Premium Paper 1 full sets
   // ..................................................................................................
-  'paper1': [
+  'paid_p1_full': [
     { tabName: 'Set-1', url: 'https://sanskrit-vartika.github.io/net/Data/p1test/pp1s1.json' },
     { tabName: 'Set-2', url: 'https://sanskrit-vartika.github.io/net/Data/p1test/pp1s2.json' },
     { tabName: 'Set-3', url: 'https://sanskrit-vartika.github.io/net/Data/p1test/pp1s3.json' },
@@ -48,7 +48,7 @@ const TEST_DATABASE_URLS = {
   ],
   
   // For Encrypted GitHub files, use this bracket format:
-  'paper1_topic': [
+  'paid_p1_topic': [
     { tabName: 'Teaching Aptitude', url: 'https://sanskrit-vartika.github.io/net/Data/p1test/pp1t.u1.teach.json' },
     { tabName: 'Research Aptitude', url: 'https://sanskrit-vartika.github.io/net/Data/p1test/pp1t.u2.resea.json' },
     { tabName: 'Comprehension', url: 'https://sanskrit-vartika.github.io/net/Data/p1test/pp1t.u3.compr.json' },
@@ -64,8 +64,8 @@ const TEST_DATABASE_URLS = {
 
 // NEW: The Dedicated Free Databases
 const FREE_DATABASE_URLS = {
-  'topic': 'https://script.google.com/macros/s/AKfycbwsDVEqgnkrJNcc8BXg3roqQ7tL5p9trxC-Eu8rtD-hTtfOo64WPTwax7ql6uitgFbXJg/exec',
-  'full': 'https://script.google.com/macros/s/AKfycbyzEJOaAOHBalQESrUx3vDyvnPHijXL_6RfLTxu2iy4BAIUeLzagkE-c7_nHMKrDOf1/exec',
-  'paper1_full': 'https://script.google.com/macros/s/AKfycbyK5qR-npXX_Zjmpxu4NguoSHtsDWvZHwpOJEIUsDvlYBnn-HCZNE_LV-cxLVr1TjNwWA/exec',
-  'paper1_topic': 'https://script.google.com/macros/s/AKfycbxLbX-cXVXNjy5tNxF4nJ64Tj7fwBLGs5k1v3K8MR8OlykDvyAjGdj8rhaVEFT4yxw3iQ/exec'
+  'free_skt_topic': 'https://script.google.com/macros/s/AKfycbz26uL9Q-4BHHiZ6EgMYaefA_Dexzt--HE3RuLCREuQs0YqCcoYbVVSQ0JcldY0vf8_sg/exec',
+  'free_skt_full': 'https://script.google.com/macros/s/AKfycbza3-gaz8NJy8HwLOUh_Zhx1RL6t1gorHCvrap7K0FA9ZetxmS6S2j4U3W-3d_q0LJx/exec',
+  'free_p1_full': 'https://script.google.com/macros/s/AKfycbwHSPQceByWXMuLZD1JKjotd0S39c2fOqxv2d2VjMadp8r8hNP125ewbmhfX4ZI8IelNw/exec',
+  'free_p1_topic': 'https://script.google.com/macros/s/AKfycbzMM4WdDwKwOqBNNV8uJSc8IfxYJyJupPZsG8WKQpmuvqHf1kfzoZATnuzDqFF2JEe5bw/exec'
 };
