@@ -1055,8 +1055,7 @@ async function openFreeSets(mode) {
 
   document.getElementById('page-free').classList.remove('active');
   document.getElementById('test-sets-view').style.display = 'block';
-  document.getElementById('bottomNav').style.display = 'none';
-  
+   
   // 🚀 SKELETON UI PREP
   document.getElementById('sets-filter').style.display = 'none'; 
   const setsDesc = document.querySelector('#test-sets-view p');

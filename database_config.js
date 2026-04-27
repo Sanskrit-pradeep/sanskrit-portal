@@ -9,7 +9,14 @@ window.TEST_DATABASE_URLS = {
   
   // Premium Sanskrit full topics
   // .................................................................................................
-  'paid_skt_full': 'https://script.google.com/macros/s/AKfycbyikVGeVJijVnekPuqULdIQwzLGYFWPEm-bJmGMQviqf1ehUQJp-VfYGZ03SBvnjfHt4A/exec',
+  'paid_skt_full': [
+    { tabName: 'Set-1', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2s1.json' },
+    { tabName: 'Set-2', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2s2.json' },
+    { tabName: 'Set-3', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2s3.json' },
+    { tabName: 'Set-4', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2s4.json' },
+    { tabName: 'Set-5', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2s5.json' }
+    
+  ],
 
   // Veda subject tipics
   // .................................................................................................
