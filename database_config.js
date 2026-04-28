@@ -25,7 +25,9 @@ window.TEST_DATABASE_URLS = {
     { tabName: 'संहितासाहित्यम्', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i1b.json' },
     { tabName: 'संवादसूक्तम्', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i1c.json' },
     { tabName: 'ब्राह्मणसाहित्यम्', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i1d.json' },
-    { tabName: 'आरण्यकसाहित्यम्', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i1e.json' }
+    { tabName: 'आरण्यकसाहित्यम्', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i1e.json' },
+    { tabName: 'वेदाङ्गानि', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i1f.json' },
+    { tabName: 'वैदिकसूक्तानि', url: 'https://sanskrit-vartika.github.io/net/Data/p2test/pp2i21.json' }
     
   ],
 
