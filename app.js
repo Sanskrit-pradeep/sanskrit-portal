@@ -3434,9 +3434,9 @@ const myCourses = [
       "✅ Pass validity- 6 months (180 days)",
       "✅ You will get access to all questions over a period of six months."
     ],
-    price: "₹119",
+    price: "₹199",
     originalPrice: "₹339",
-    promoText: "🔥 Offer ends tonight!",
+    promoText: "",
     btnText: "Get Combo Pass",
     link: "https://pages.razorpay.com/pl_Ss4ilwc0l7Cadn/view"
   },
@@ -3460,9 +3460,9 @@ const myCourses = [
       "✅ Pass validity- 6 months (180 days)",
       "✅ You will get access to all questions over a period of six months."
     ],
-    price: "₹59",
+    price: "₹89",
     originalPrice: "₹149",
-    promoText: "🔥 Offer ends tonight!",
+    promoText: "",
     btnText: "Get General Pass",
     link: "text=Hello! I want to buy the General Paper 1 Mock Pass."
   },
@@ -3486,9 +3486,9 @@ const myCourses = [
       "✅ Pass validity- 6 months (180 days)",
       "✅ You will get access to all questions over a period of six months."
     ],
-    price: "₹89",
+    price: "₹129",
     originalPrice: "₹199",
-    promoText: "🔥 Offer ends tonight!",
+    promoText: "",
     btnText: "Get Sanskrit Pass",
     link: "text=Hello! I want to buy the Sanskrit Mock Test Pass."
   },
