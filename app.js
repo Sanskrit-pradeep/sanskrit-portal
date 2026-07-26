@@ -1557,7 +1557,7 @@ async function openFreeSets(mode) {
 
     // 🚀 Restore UI text
     document.getElementById('sets-category-title').textContent = config.title;
-    if (setsDesc) setsDesc.style.display = 'block';
+    // (We intentionally keep setsDesc hidden here for Free Tests!)
 
     let history = (currentUser && currentUser.dbData && currentUser.dbData.history) ? currentUser.dbData.history : [];
     
