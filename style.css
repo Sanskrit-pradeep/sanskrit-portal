@@ -1837,7 +1837,21 @@ body.test-mode-active .test-overlay-system {
   border: 0;
 }
 
-/* 🎨 Make the Premium Gold Bell glow when the red dot is visible! */
+/* 🎨 Make the Premium Gold Bell glow and SWING when the red dot is visible! */
+@keyframes bellSwing {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-10deg); }
+  60% { transform: rotate(5deg); }
+  80% { transform: rotate(-5deg); }
+  100% { transform: rotate(0); }
+}
+
+#nav-bell-btn:has(#bell-dot:not([style*="display: none"])) svg {
+  animation: bellSwing 2.5s ease-in-out infinite;
+  transform-origin: top center;
+}
+
 #nav-bell-btn:has(#bell-dot:not([style*="display: none"])) svg path {
   fill: rgba(255, 215, 0, 0.3);
 }
