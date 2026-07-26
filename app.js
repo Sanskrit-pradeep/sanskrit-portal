@@ -62,7 +62,6 @@ const CORE_SUBJECTS = {
   }
 };
 
-// Change this to show all or only sanskrit in guest mode switch
 // 🚀 SAFE STORAGE ENGINE: Prevents fatal crashes in Incognito mode
 function safeGetLocal(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -3560,7 +3559,16 @@ function purchaseCourse(index) {
   const course = myCourses[index];
   if (!course) return;
 
-  // Extract the original message from your myCourses array
+  // 1. 🔒 SECURITY CHECK: Force user to log in before purchasing!
+  if (!currentUser) {
+    showToast("🔒 Please log in or create an account to get this pass!");
+    if (typeof showAuthModal === 'function') {
+      showAuthModal('login');
+    }
+    return; // Stop the script here so it doesn't open WhatsApp
+  }
+
+  // 2. Extract the original message from your myCourses array
   let baseMsg = `Hello! I want to buy the ${course.title}.`;
   if (course.link.includes('text=')) {
     baseMsg = decodeURIComponent(course.link.split('text=')[1]);
