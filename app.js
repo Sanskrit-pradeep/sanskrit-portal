@@ -3421,7 +3421,7 @@ const myCourses = [
     subtitle: "1st Paper + Sanskrit Paper 2",
     isFree: false,
     duration: "6 Months",
-    level: "All Levels",
+    level: "NTA NET & SET",
     videos: "15,000+ Questions",
     desc: "Ultimate practice bundle. Get full access to both General Paper 1 and Sanskrit Paper 2 mock tests, PYQs, and analytics.",
     features: [
@@ -3436,8 +3436,9 @@ const myCourses = [
     ],
     price: "₹119",
     originalPrice: "₹339",
+    promoText: "🔥 Offer ends tonight!",
     btnText: "Get Combo Pass",
-    link: "text=Hello! I want to buy the Combo Mock Test Pass."
+    link: "https://pages.razorpay.com/pl_Ss4ilwc0l7Cadn/view"
   },
 
 
@@ -3446,7 +3447,7 @@ const myCourses = [
     subtitle: "Topic-wise & Full Mock Tests For Sanskrit, Bengali, Philosophy and all other arts subjects",
     isFree: false,
     duration: "6 Months",
-    level: "All Levels",
+    level: "NTA NET & SET",
     videos: "5,000+ Questions",
     desc: "Dedicated mock tests for UGC NET Paper 1. For Sanskrit, Bengali, Philosophy and all other arts subjects.",
     features: [
@@ -3461,6 +3462,7 @@ const myCourses = [
     ],
     price: "₹59",
     originalPrice: "₹149",
+    promoText: "🔥 Offer ends tonight!",
     btnText: "Get General Pass",
     link: "text=Hello! I want to buy the General Paper 1 Mock Pass."
   },
@@ -3471,7 +3473,7 @@ const myCourses = [
     subtitle: "Topic-wise & Full Mock Tests",
     isFree: false,
     duration: "6 Months",
-    level: "All Levels",
+    level: "NTA NET & SET",
     videos: "10,000+ Questions",
     desc: "Comprehensive test series covering all 10 units of Paper 2. Includes detailed explanations and performance analytics.",
     features: [
@@ -3486,6 +3488,7 @@ const myCourses = [
     ],
     price: "₹89",
     originalPrice: "₹199",
+    promoText: "🔥 Offer ends tonight!",
     btnText: "Get Sanskrit Pass",
     link: "text=Hello! I want to buy the Sanskrit Mock Test Pass."
   },
@@ -3554,6 +3557,24 @@ const myCourses = [
   }
 ];
 
+
+// --- NEW: SMART COURSE SUPPORT ---
+function contactSupportCourse(index) {
+  const course = myCourses[index];
+  if (!course) return;
+
+  let baseMsg = `Hi! I need some help regarding the ${course.title}.`;
+  
+  // Dynamically grab details if they are logged in!
+  if (currentUser) {
+    const name = (currentUser.dbData && currentUser.dbData.name) ? currentUser.dbData.name : "Student";
+    const email = currentUser.email || "";
+        baseMsg += `\n\nMy Details:\nName: ${name}\nEmail: ${email}`;
+  }
+
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(baseMsg)}`, '_blank');
+}
+
 // --- NEW: SMART PURCHASE ROUTER ---
 function purchaseCourse(index) {
   const course = myCourses[index];
@@ -3565,23 +3586,46 @@ function purchaseCourse(index) {
     if (typeof showAuthModal === 'function') {
       showAuthModal('login');
     }
-    return; // Stop the script here so it doesn't open WhatsApp
+    return; // Stop the script here so it doesn't open the link
   }
 
-  // 2. Extract the original message from your myCourses array
-  let baseMsg = `Hello! I want to buy the ${course.title}.`;
-  if (course.link.includes('text=')) {
-    baseMsg = decodeURIComponent(course.link.split('text=')[1]);
+  // Safely grab user details (including Phone Number now!)
+  const userEmail = currentUser.email || "";
+  const userName = (currentUser.dbData && currentUser.dbData.name) ? currentUser.dbData.name : "Student";
+  const userPhone = (currentUser.dbData && currentUser.dbData.whatsapp) ? currentUser.dbData.whatsapp : "";
+
+  // 2. SPECIAL CASE: Free Content
+  if (course.link === "free" || course.isFree) {
+    document.getElementById('course-details-modal').style.display = 'none';
+    if (typeof navigate === 'function') navigate('free');
+    return;
   }
 
-  // If the user is logged in, attach their profile details!
-  if (currentUser && currentUser.dbData) {
-    const name = currentUser.dbData.name || "Student";
-    const email = currentUser.email || "";
-    baseMsg += `\n\nMy Details:\nName: ${name}\nEmail: ${email}`;
-  }
+  // 3. SMART ROUTER: Is it a Payment Link or a WhatsApp message?
+  if (course.link.startsWith('http')) {
+    // 🔗 IT'S A PAYMENT LINK (Razorpay/Stripe)
+    const separator = course.link.includes('?') ? '&' : '?';
+    let finalPaymentUrl = `${course.link}${separator}email=${encodeURIComponent(userEmail)}`;
+    
+    // Auto-fill phone number if the user has one!
+    if (userPhone) {
+      finalPaymentUrl += `&phone=${encodeURIComponent(userPhone)}`;
+    }
+    
+    window.open(finalPaymentUrl, '_blank');
 
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(baseMsg)}`, '_blank');
+  } else {
+    // 💬 IT'S A WHATSAPP MESSAGE
+    let baseMsg = `Hello! I want to buy the ${course.title}.`;
+    if (course.link.includes('text=')) {
+      baseMsg = decodeURIComponent(course.link.split('text=')[1]);
+    }
+    
+    // Attach user details for WhatsApp
+    baseMsg += `\n\nMy Details:\nName: ${userName}\nEmail: ${userEmail}\nPhone: ${userPhone}`;
+    
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(baseMsg)}`, '_blank');
+  }
 }
 
 function renderCourses() {
@@ -3605,7 +3649,14 @@ function renderCourses() {
           discountTag = `<span class="discount">${pct}% OFF</span>`;
         }
       }
-      priceDisplay = `<div class="course-price"><span class="current">${course.price}</span> <span class="og">${course.originalPrice}</span> ${discountTag}</div>`;
+      
+      // 🌟 NEW: Custom Promo Text Logic
+      let promoHtml = '';
+      if (course.promoText) {
+         promoHtml = `<span style="color: #d32f2f; font-size: 0.8rem; font-weight: 800; padding-left: 6px; letter-spacing: 0.5px;">${course.promoText}</span>`;
+      }
+
+      priceDisplay = `<div class="course-price" style="align-items: center;"><span class="current">${course.price}</span> <span class="og">${course.originalPrice}</span> ${discountTag} ${promoHtml}</div>`;
     }
     
     // --- NEW DUAL BUTTON LOGIC ---
@@ -3618,6 +3669,9 @@ function renderCourses() {
           <button class="btn btn-outline" style="flex: 1; justify-content: center; padding: 10px 12px;" onclick="showCourseDetails(${index})">Details</button>
           <button class="btn btn-primary" style="flex: 1.5; justify-content: center; padding: 10px 12px; text-align: center;" onclick="purchaseCourse(${index})">${course.btnText}</button>
         </div>
+        <button onclick="contactSupportCourse(${index})" style="width: 100%; margin-top: 12px; padding: 10px; background: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.3); border-radius: 8px; font-family: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          💬 Need help? Chat with us
+        </button>
       `;
     }
 
@@ -3629,12 +3683,13 @@ function renderCourses() {
           <div class="course-badge">${badge}</div>
         </div>
         <div class="course-body">
-          <div class="course-meta">
+          <!-- 🌟 UPGRADED: 1-Line Meta Info -->
+          <div class="course-meta" style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.72rem; gap: 4px; padding-bottom: 8px; border-bottom: 1px dashed rgba(0,0,0,0.1); margin-bottom: 8px;">
             <span>📅 ${course.duration}</span>
             <span>🎯 ${course.level}</span>
             <span>📹 ${course.videos}</span>
           </div>
-          <p style="font-size:0.84rem;color:var(--text-mid);line-height:1.6;margin-bottom:16px;">${course.desc}</p>
+          <p style="font-size:0.84rem;color:var(--text-mid);line-height:1.6;margin-bottom:16px; margin-top: 4px;">${course.desc}</p>
           ${priceDisplay}
           ${buttonHtml}
         </div>
