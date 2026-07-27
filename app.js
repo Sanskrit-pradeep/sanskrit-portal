@@ -3464,7 +3464,7 @@ const myCourses = [
     originalPrice: "₹149",
     promoText: "",
     btnText: "Get General Pass",
-    link: "text=Hello! I want to buy the General Paper 1 Mock Pass."
+    link: "https://pages.razorpay.com/pl_Ss4WB2dHUNtUUg/view"
   },
 
 
@@ -3490,7 +3490,7 @@ const myCourses = [
     originalPrice: "₹199",
     promoText: "",
     btnText: "Get Sanskrit Pass",
-    link: "text=Hello! I want to buy the Sanskrit Mock Test Pass."
+    link: "https://pages.razorpay.com/pl_Ss3CQGhLqDShnZ/view"
   },
 
   // {
